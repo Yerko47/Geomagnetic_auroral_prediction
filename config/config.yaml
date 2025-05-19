@@ -1,0 +1,67 @@
+data:
+  auroral_index : "AE_INDEX "
+  set_split: "organized"
+  scaler_type: "robust"
+
+  test_size: 0.15
+
+cv:
+  n_split: 5
+  gap: 0
+  max_train_size: null
+
+nn:
+  type_model: "CNN"
+  batch_test: 1040
+  lr: 1e-3
+  patience: 10
+  drop: 0.1
+  optimizer_type: "SGD"
+  schler: "Cosine"
+  patience_schler: 10
+
+  #* CNN
+  kernel_size: 7
+
+  #* LSTM
+  num_layer_lstm: 1
+  hidden_neurons_lstm: 128
+
+  #*GRU
+  num_layer_gru: 2
+  hidden_neurons_gru: 128
+
+  #*TCNN
+  num_chanel_list_tcnn: [64, 64, 128, 128]
+
+
+  #* TRANSFORMER
+  d_model_transformer: 64
+  nhead_transformer: 4
+  num_encoder_layers_transformer: 3
+  dim_feedforward_transformer: 128
+
+
+
+constant:
+  in_year: 1995
+  out_year: 2018
+  delay_length: [30, 40, 50, 60]
+  EPOCH: 200
+  omni_param: [
+    "B_Total",
+    "BZ_GSE",
+    "BZ_GSM",
+    "flow_speed",
+    "Vx",
+    "T",
+    "Pressure",
+    "E_Field",
+    "IMF",
+  ]
+  auroral_param: [
+    "AE_INDEX",
+    "AU_INDEX",
+    "AL_INDEX"
+  ]
+
