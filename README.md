@@ -1,4 +1,3 @@
-"""
 project_root/
 ├── config/
 │   └── config.yaml             # Editable parameters
@@ -21,4 +20,3 @@ project_root/
 ├── tests/                      # Unit tests
 ├── docs/                       # Project documentation
 └── notebooks/                  # Interactive exploration and visualization
-"""
