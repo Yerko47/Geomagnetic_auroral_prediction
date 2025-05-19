@@ -37,6 +37,7 @@ El sistema está diseñado para ser configurable a través de un archivo `config
 * **Estructura de Proyecto Organizada**: Rutas de archivos y directorios gestionadas por `paths.py`.
 
 ## Estructura del Proyecto (Simplificada)
+```text
 auroral_prediction_project/
 ├── config/
 │   └── config.yaml             # Archivo de configuración principal
