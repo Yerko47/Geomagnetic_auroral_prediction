@@ -1,6 +1,7 @@
 import yaml
 from pathlib import Path
 
+#* READ YALM FILE
 def config_load(config_path: str = None, overrides: dict = None) -> dict:
     """
     Loads the configuration file and applies overrides from the CLI.

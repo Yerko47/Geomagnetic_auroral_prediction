@@ -1,6 +1,6 @@
 from pathlib import Path
 
-#* Structure Project "Geomagnetic Auroral Index Prediction"
+#* STRUCTURE PROJECT
 def structure_project(project_root = None):
     """
     Create project structure
@@ -44,5 +44,3 @@ def structure_project(project_root = None):
 
     return paths
 
-paths = structure_project()
-print(paths['raw_file'])
