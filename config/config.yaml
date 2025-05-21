@@ -1,5 +1,5 @@
 data:
-  auroral_index : "AE_INDEX "
+  auroral_index: 'AE_INDEX'
   set_split: "organized"
   scaler_type: "robust"
 
@@ -11,17 +11,17 @@ cv:
   max_train_size: null
 
 nn:
-  type_model: "CNN"
+  type_model: "LSTM"
   batch_test: 1040
-  lr: 1e-3
-  patience: 10
+  lr: 0.001
+  patience: 100
   drop: 0.1
-  optimizer_type: "SGD"
-  schler: "Cosine"
+  optimizer_type: "Adam"
+  schler: "Reduce"
   patience_schler: 10
 
   #* CNN
-  kernel_size: 7
+  kernel_size: 5
 
   #* LSTM
   num_layer_lstm: 1
