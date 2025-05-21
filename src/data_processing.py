@@ -387,7 +387,7 @@ def create_set_prediction(df_processed: pd.DataFrame, config: Dict[str, Any]) ->
 
         test_start_index = int(n_total * (1 - test_proportion))
 
-        development_df = df_processed.iloc[:test_proportion].copy()
+        development_df = df_processed.iloc[:test_start_index].copy()
         test_df = df_processed.iloc[test_start_index:].copy()
 
     elif set_split_strategy == 'random':
@@ -539,7 +539,7 @@ def time_delay(df: pd.DataFrame, config: Dict[str, Any], delay: int, dataset_gro
         np_solar = np.array(sequences, dtype = np.float32)
         np_solar = np.transpose(np_solar, (0, 2, 1)) 
 
-        np_target_index = np_target_index[delay - 1:]
+        np_index = np_index[delay - 1:]
         if dataset_group == 'test' and not df_epoch.empty:
             df_epoch = df_epoch.iloc[delay - 1:].reset_index(drop = True)
     
@@ -548,9 +548,9 @@ def time_delay(df: pd.DataFrame, config: Dict[str, Any], delay: int, dataset_gro
     
     # Return results
     if dataset_group == 'test':
-        return np_solar, np_target_index, df_epoch
+        return np_solar, np_index, df_epoch
     else:
-        return np_solar, np_target_index
+        return np_solar, np_index
     
 
 #* DATA TORCH
@@ -570,7 +570,7 @@ class DataTorch(Dataset):
     def __init__(self, np_solar: np.ndarray, np_index: np.ndarray, device: Union[str, torch.device]):
         self.device = device
         self.x_data = torch.tensor(np_solar, dtype = torch.float32).to(self.device)
-        self.y_data = torch.tensor(np_solar, dtype = torch.float32).unsqueeze(1).to(self.device)
+        self.y_data = torch.tensor(np_index, dtype = torch.float32).unsqueeze(1).to(self.device)
     
     def __len__(self) -> int:
         """Returns the total number of samples in the dataset."""

@@ -127,7 +127,7 @@ def type_nn(config: Dict[str, Any], x_train_shape: Tuple[int, ...], delay: int, 
 
 
 #* METRICS CALCULATION
-def calculate_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> Dict[str, float]:
+def calculate_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> Tuple[str, float]:
     """
     Calculate RMSE and R2 Score Metrics
     
@@ -138,7 +138,7 @@ def calculate_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> Dict[str, float
             Predicted Values
     
     Returns:
-        metrics (Dict[str, float]):
+        metrics (Tuple[str, float]):
             Dictionary containing RMSE and R Score
     """
     rmse = root_mean_squared_error(y_true, y_pred)
@@ -239,7 +239,7 @@ def train_val_model(model: nn.Module, criterion: nn.Module, train_loader: DataLo
     type_model = config['nn']['type_model']
     auroral_index = config['data']['auroral_index']
     run_specific_tag = f"_fold_{fold_identifier}" if fold_identifier else "_final"
-    model_save_filname = f"{type_model}_{auroral_index}_delay_{delay}{run_specific_tag}.pth"
+    model_save_filname = f"{type_model}_{auroral_index}_delay_{delay}{run_specific_tag}.pt"
     model_save_path = paths['model'] / model_save_filname
 
     # Optimizer selection

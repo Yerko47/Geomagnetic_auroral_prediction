@@ -16,7 +16,7 @@ def main():
     
     """
     #* 0. INITIALIZE PROJECT STRUCTURE
-    # -------------------------------
+    # --------------------------------
     overrides = parse_args()
     cfg = config_load(overrides = overrides)
 
@@ -32,6 +32,18 @@ def main():
     else:
         device = torch.device("cpu")
     
-    
+    # Processing and plotting flags from config
+    processOMNI = cfg.get('constant', False)
+    processPLOT = cfg.get('plot', False)
 
 
+    #* 1. LOAD AND PROCESS DATA
+    # --------------------------
+    df = dataset(cfg, project_paths, processOMNI)
+    df_storm = storm_selection(df, project_paths)
+    df_scaler = scaler_df(df_storm, cfg)
+
+    del df, df_storm
+
+    if processPLOT:
+        
