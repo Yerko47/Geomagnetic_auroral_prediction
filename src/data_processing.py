@@ -174,9 +174,6 @@ def dataset(config: Dict[str, Any], paths: Dict[str, Path], processOMNI: bool = 
         # Concatenate all monthly DataFrames
         df_omni = pd.concat(data_frame_list, axis = 0, ignore_index = True)
 
-        # Set 'Epoch' as index for easier time-based operations if not already
-        if 'Epoch' in df_omni.columns and not isinstance(df_omni.index, pd.DatetimeIndex):
-             df_omni.set_index('Epoch', inplace = True, drop = False) # Keep Epoch as column too for flexibility
 
         # Drop specified irrelevant columns, handle missing columns gracefully
         existing_cols_to_drop = [col for col in columns_to_drop if col in df_omni.columns]
@@ -185,9 +182,6 @@ def dataset(config: Dict[str, Any], paths: Dict[str, Path], processOMNI: bool = 
         # Clean the data (interpolate NaNs, handle outliers)
         df_omni = bad_data(df_omni)
 
-        # Sort by Epoch to ensure chronological order before saving
-        if 'Epoch' in df_omni.columns:
-            df_omni.sort_values(by = 'Epoch', inplace = True)
 
         # Save the processed DataFrame to a feather file
         # Reset index if Epoch was made index but is also a column
@@ -239,7 +233,7 @@ def storm_selection(df: pd.DataFrame, paths: Dict[str, Path]) -> pd.DataFrame:
     storm_list_df = pd.read_csv(
         storm_list_path,
         header = None,
-        names = {'Epoch'},
+        names = ['Epoch'],
         parse_dates = ['Epoch']
     )
 

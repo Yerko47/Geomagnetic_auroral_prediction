@@ -53,3 +53,6 @@ def main():
 
     print(development_df.shape, test_df.shape)
         
+
+if __name__ == "__main__":
+    main()

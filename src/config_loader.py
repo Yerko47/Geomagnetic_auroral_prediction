@@ -24,7 +24,7 @@ def config_load(config_path: str = None, overrides: dict = None) -> dict:
         cfg = yaml.safe_load(f)
 
     # Apply overrides according to the corresponding path in the dictionary
-    for key, value in overrides.item():
+    for key, value in overrides.items():
         # Data
         if key in ['auroral_index', 'scaler_type', 'set_split', 'test_size']:
             cfg['data'][key] = value
