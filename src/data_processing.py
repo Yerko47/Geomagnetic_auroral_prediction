@@ -446,8 +446,8 @@ def time_delay(df: pd.DataFrame, config: Dict[str, Any], delay: int, dataset_gro
 
     The shape of the output solar wind features depends on `config['nn']['type_model']`:
     - 'ANN': Features are flattened [num_samples, num_features * delay_steps].
-    - 'LSTM': Features are shaped as sequences [num_samples, delay_steps, num_features].
-    - 'CNN': Features are shaped as sequences [num_samples, num_features, delay_steps] (channels first for Conv1D).
+    - 'LSTM, GRU, Transformer': Features are shaped as sequences [num_samples, delay_steps, num_features].
+    - 'CNN, TCNN': Features are shaped as sequences [num_samples, num_features, delay_steps] (channels first for Conv1D).
 
     Args:
         df (pd.DataFrame): 
