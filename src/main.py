@@ -45,5 +45,11 @@ def main():
 
     del df, df_storm
 
-    if processPLOT:
+    development_df, test_df = create_set_prediction(df_scaler, cfg)
+    del df_scaler
+
+    auroral_index_target = cfg['data']['auroral_index'].strip()
+    model_type_config = cfg['nn']['type_model'].strip().upper()
+
+    print(development_df.shape, test_df.shape)
         
