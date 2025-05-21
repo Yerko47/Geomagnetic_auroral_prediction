@@ -42,34 +42,44 @@ class ResBlock(nn.Module):
     """
     def __init__(self, input_channels: int, output_channels: int, kernel_size: int, stride: int, padding: int):
         super(ResBlock, self).__init__()
+    
         self.layer1 = nn.Sequential(
-            nn.Conv1d(input_channels, output_channels, kernel_size, stride, padding),
-            nn.LeakyReLU()
+            nn.Conv1d(input_channels, output_channels, kernel_size, stride = stride, padding = padding, bias = False),
+            nn.BatchNorm1d(output_channels),
+            nn.ReLU(inplace = False)
         )
         
         self.layer2 = nn.Sequential(
-            nn.Conv1d(output_channels, output_channels, kernel_size, stride, padding),
-            nn.LeakyReLU()
+            nn.Conv1d(output_channels, output_channels, kernel_size, stride = 1, padding = padding, bias = False),
+            nn.BatchNorm1d(output_channels),
+            nn.ReLU(inplace = False)
         )
 
-        self.downsample = nn.Sequential(
-            nn.Conv1d(input_channels, output_channels, kernel_size=1, stride=stride, padding=0),
-            nn.BatchNorm1d(output_channels),
-            nn.ReLU()
-        )
+        self.downsample = nn.Sequential() 
+        if stride != 1 or input_channels != output_channels:
+            self.downsample = nn.Sequential(
+                nn.Conv1d(input_channels, output_channels, kernel_size = 1, stride = stride, padding = 0, bias = False),
+                nn.BatchNorm1d(output_channels)
+            )
+
+        self.final_relu = nn.ReLU(inplace = False)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         identity = self.downsample(x)
         out = self.layer1(x)
-        out = self.layer2(x)
+        out = self.layer2(out)
 
-        if out.size(2) != identity.size(2):
+        if out.size(2) != identity.size(2): 
             diff = out.size(2) - identity.size(2)
-            if diff > 0:
-                identity = F.pad(identity, (diff // 2, diff - (diff //2)))
-            elif diff < 0:
-                out = F.pad(out, (-diff // 2, -diff + (-diff // 2)))
-        return out + identity
+            if diff > 0: 
+                identity = F.pad(identity, (diff // 2, diff - (diff // 2)))
+            elif diff < 0: 
+                out = F.pad(out, (-diff // 2, -diff + (-diff // 2))) 
+
+        out = out + identity
+        out = self.final_relu(out)
+        
+        return out
 
 class CNN(nn.Module):
     """
@@ -89,20 +99,18 @@ class CNN(nn.Module):
         super(CNN, self).__init__()
         padding = kernel_size // 2
         self.conv_blocks = nn.Sequential(
-            ResBlock(input_channels = input_size, output_channels = 64, stride = 2, padding = padding),
+            ResBlock(input_channels = input_size, output_channels = 64, kernel_size = kernel_size, stride = 1, padding = padding),
             nn.MaxPool1d(kernel_size = 2, stride = 2), nn.Dropout(drop),
-            ResBlock(input_channels = 64, output_channels = 128, stride = 2, padding = padding),
-            nn.MaxPool1d(kernel_size = kernel_size, stride = 2), nn.Dropout(drop),
-            ResBlock(input_channels = 128, output_channels = 256, stride = 2, padding = padding),
-            nn.MaxPool1d(kernel_size = kernel_size, stride = 2), nn.Dropout(drop)
+            ResBlock(input_channels = 64, output_channels = 128, kernel_size = kernel_size, stride = 1, padding = padding),
+            nn.MaxPool1d(kernel_size = 2, stride = 2), nn.Dropout(drop),
         )
         
         self.fc1 = nn.Sequential(
-            nn.Linear(256 + input_size, 128), nn.ReLU(), nn.Dropout(drop),
-            nn.Linear(128, 64), nn.ReLU(), nn.Dropout(drop)
+            nn.Linear(128 + input_size, 64), nn.ReLU(), nn.Dropout(drop),
+            nn.Linear(64, 32), nn.ReLU(), nn.Dropout(drop)
         )
 
-        self.fc_out = nn.Linear(64, 1)
+        self.fc_out = nn.Linear(32, 1)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # x shape: [batch_size, input_features, sequence_length]
@@ -125,18 +133,18 @@ class LSTM(nn.Module):
             Number of input features.
         drop (float):
             Dropout probability for regularization.
-        num_lstm_layer (int):
+        num_lstm_layers (int):
             Number of LSTM layers.
         delay (int):
             Number of time steps to look back in the input sequence.
         hidden_neurons (int, optional):
             Number of neurons in the LSTM layer.
     """
-    def __init__(self, input_size: int, drop: float, num_lstm_layer: int, delay: int, hidden_neurons: int):
+    def __init__(self, input_size: int, drop: float, num_lstm_layers: int, delay: int, hidden_neurons: int):
         super(LSTM, self).__init__()
-        self.lstm = nn,LSTM(
-            input_size = input_size, hidden_neurons = hidden_neurons,
-            num_layers = num_lstm_layer, batch_first = True, bidirectional = True
+        self.lstm = nn.LSTM(
+            input_size = input_size, hidden_size = hidden_neurons,
+            num_layers = num_lstm_layers, batch_first = True, bidirectional = True
         )
 
         self.layer_norm = nn.LayerNorm(hidden_neurons * 2)
@@ -229,13 +237,13 @@ class TemporalBlock(nn.Module):
     """
     def __init__(self, n_inputs: int, n_outputs: int, kernel_size: int, stride: int, dilation: int, padding: int, drop: float = 0.2):
         super(TemporalBlock, self).__init__()
-        self.conv1 = nn.utils.parametrizations.weight_norm(
+        self.conv1 = nn.utils.weight_norm(
             nn.Conv1d(n_inputs, n_outputs, kernel_size, stride = stride, padding = padding, dilation = dilation))
         self.champ1 = Chomp1d(padding)
         self.relu1 = nn.ReLU()
         self.dropout1 = nn.Dropout(drop)
 
-        self.conv2 = nn.utils.parametrizations.weight_norm(
+        self.conv2 = nn.utils.weight_norm(
             nn.Conv1d(n_outputs, n_outputs, kernel_size, stride = stride, padding = padding, dilation = dilation))
         self.chomp2 = Chomp1d(padding)
         self.relu2 = nn.ReLU()
@@ -280,7 +288,7 @@ class TCNN(nn.Module):
             # This ensures that the convolution only sees past points and the current one.
             # Chomp1d will take care of removing the padding on the right side.
             current_padding = (kernel_size - 1) * dilation_size
-            layers.append(TemporalBlock(in_channels_block, out_channels_block, kernel_size, stride = 1, dilation = dilation_size, padding = current_padding, dropout = dropout_rate))
+            layers.append(TemporalBlock(in_channels_block, out_channels_block, kernel_size, stride = 1, dilation = dilation_size, padding = current_padding, drop = dropout_rate))
 
         self.temporal_network = nn.Sequential(*layers)
 

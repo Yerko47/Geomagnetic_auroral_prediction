@@ -468,19 +468,14 @@ def time_delay(df: pd.DataFrame, config: Dict[str, Any], delay: int, dataset_gro
             - np_index (np.ndarray): Target auroral index values.
             - df_epoch (pd.Series, optional): Series of 'Epoch' timestamps (returned only if `dataset_group` is 'test').
     """
-    if df.empty:
-        if dataset_group == 'test':
-            return np.array([]), np.array([]), pd.Series([])
-        else:
-            return np.array([]), np.array([])
-        
+       
     omni_param = config['constant']['omni_param']
-    auroral_index = config['data']['auroral_index'].strip().upper()
+    auroral_index = config['data']['auroral_index'].upper()
     type_model = config['nn']['type_model'].strip()
 
     if not all(col in df.columns for col in omni_param):
         raise ValueError("Missing one or more OMNI parameter columns in the time_delayinput DataFrame.")
-    if not auroral_index not in df.columns:
+    if not auroral_index in df.columns:
         raise ValueError(f"Target auroral index '{auroral_index}' not found in time_delay input DataFrame.")
     if 'Epoch' not in df.columns and dataset_group == 'test':
         raise ValueError("'Epoch' column missing, required for test group in time_delay.")
@@ -568,7 +563,7 @@ class DataTorch(Dataset):
     
     def __len__(self) -> int:
         """Returns the total number of samples in the dataset."""
-        return len(self.x_data), len(self.y_data)
+        return len(self.x_data)
     
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor]:
         """

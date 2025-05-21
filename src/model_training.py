@@ -54,19 +54,24 @@ def type_nn(config: Dict[str, Any], x_train_shape: Tuple[int, ...], delay: int, 
             The instantiated PyTorch model, moved to the specified device.
     """
     model_config = config.get('nn', {})
-    type_model = model_config.get('type_model').strip().upper()
+    model: Union[nn.Module, None] = None
+    type_model = model_config.get('type_model').upper()
     drop = model_config.get('drop')
+    
     kernel_size = model_config.get('kernel_size')
+    
     num_lstm_layers = model_config.get('num_layer_lstm')
     hidden_neurons_lstm = model_config.get('hidden_neurons_lstm')
+    
     num_gru_layers = model_config.get('num_layer_gru')
     hidden_neurons_gru = model_config.get('hidden_neurons_gru')
-    num_channels_list_tcnn = model_config.get('num_channels_list_tcnn')
-    kernel_size_tcnn = model_config.get('kernel_size_tcnn')
+    
+    num_channels_list_tcnn = model_config.get('num_chanel_list_tcnn')
+    kernel_size_tcnn = model_config.get('kernel_size')
 
+    
     default_d_model = x_train_shape[2] if type_model == 'TRANSFORMER' and len(x_train_shape) == 3 else 64
     d_model_transformer = model_config.get('d_model_transformer', default_d_model)
-
     nhead_transformer = model_config.get('nhead_transformer')
     if d_model_transformer % nhead_transformer != 0:
         raise ValueError(f"d_model_transformer ({d_model_transformer}) must be divisible by nhead_transformer ({nhead_transformer})")
@@ -75,21 +80,22 @@ def type_nn(config: Dict[str, Any], x_train_shape: Tuple[int, ...], delay: int, 
     dim_feedforward_transformer = model_config.get('dim_feedforward_transformer')
 
     if type_model == 'ANN':
-        if len(x_train_shape) > 2:
+        if len(x_train_shape) >= 2:
             input_size = x_train_shape[1]
             model = ANN(input_size, drop)
             print(f"Instantiated ANN model with input_size = {input_size}")
 
     elif type_model == 'CNN':
-        if len(x_train_shape) > 3:
+        if len(x_train_shape) >= 3:
             input_size = x_train_shape[1]
             sequence_length = x_train_shape[2]
             if sequence_length == delay:
+                print(type_model)
                 model = CNN(input_size, kernel_size, drop, delay)
-            print(f"Instantiated CNN model with input_channels = {input_size}, kernel_size = {kernel_size}, sequence_length = {delay}")
+            print(f"\nInstantiated CNN model with input_channels = {input_size}, kernel_size = {kernel_size}, sequence_length = {delay}\n")
     
     elif type_model == 'LSTM':
-        if len(x_train_shape) > 3:
+        if len(x_train_shape) >= 3:
             input_size = x_train_shape[2]
             sequence_length = x_train_shape[1]
             if sequence_length == delay:
@@ -97,7 +103,7 @@ def type_nn(config: Dict[str, Any], x_train_shape: Tuple[int, ...], delay: int, 
             print(f"Instantiated LSTM model with input_features = {input_size}, layers = {num_lstm_layers}, hidden_neurons = {hidden_neurons_lstm}, sequence_length = {delay}")
 
     elif type_model == 'GRU':
-        if len(x_train_shape) > 3:
+        if len(x_train_shape) >= 3:
             input_size = x_train_shape[2]
             sequence_length = x_train_shape[1]
             if sequence_length == delay:
@@ -105,7 +111,7 @@ def type_nn(config: Dict[str, Any], x_train_shape: Tuple[int, ...], delay: int, 
             print(f"Instantiated GRU model with input_features = {input_size}, layers = {num_gru_layers}, hidden_neurons = {hidden_neurons_gru}, sequence_length = {delay}")
     
     elif type_model == 'TCNN':
-        if len(x_train_shape) > 3:
+        if len(x_train_shape) >= 3:
             input_size = x_train_shape[1]
             sequence_length = x_train_shape[2]
             if sequence_length == delay:
@@ -113,7 +119,7 @@ def type_nn(config: Dict[str, Any], x_train_shape: Tuple[int, ...], delay: int, 
             print(f"Instantiated TCNN model with input_channels = {input_size}, kernel_size = {kernel_size_tcnn}, sequence_length = {delay}")
 
     elif type_model == 'TRANSFORMER':
-        if len(x_train_shape) > 3:
+        if len(x_train_shape) >= 3:
             input_size = x_train_shape[2]
             sequence_length = x_train_shape[1]
             if sequence_length == delay:
@@ -123,6 +129,9 @@ def type_nn(config: Dict[str, Any], x_train_shape: Tuple[int, ...], delay: int, 
     else:
         raise ValueError(f"Invalid type_model: '{type_model}'. Choose from 'ANN', 'CNN', 'LSTM', 'GRU', 'TCNN', 'TRANSFORMER'.")
 
+    if model is None:
+        raise ValueError(f'Model None')
+    
     return model.to(device)
 
 
@@ -141,6 +150,12 @@ def calculate_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> Tuple[str, floa
         metrics (Tuple[str, float]):
             Dictionary containing RMSE and R Score
     """
+    if np.isnan(y_true).any():
+        raise ValueError("Input Real arrays contain NaN values.")
+    elif np.isnan(y_pred).any():
+        raise ValueError("Input Pred arrays contain NaN values.")
+        
+    
     rmse = root_mean_squared_error(y_true, y_pred)
     r2 = r2_score(y_true, y_pred)
     r_socre = np.sqrt(r2) if r2 >= 0 else 0
@@ -232,7 +247,7 @@ def train_val_model(model: nn.Module, criterion: nn.Module, train_loader: DataLo
     lr = config['nn']['lr']
     optimizer_type = config['nn']['optimizer_type']
     schler = config['nn']['schler']
-    schler_patience = config['nn']['schler_patience']
+    schler_patience = config['nn']['patience_schler']
     early_patience = config['nn']['patience']
 
     # Information
@@ -240,13 +255,13 @@ def train_val_model(model: nn.Module, criterion: nn.Module, train_loader: DataLo
     auroral_index = config['data']['auroral_index']
     run_specific_tag = f"_fold_{fold_identifier}" if fold_identifier else "_final"
     model_save_filname = f"{type_model}_{auroral_index}_delay_{delay}{run_specific_tag}.pt"
-    model_save_path = paths['model'] / model_save_filname
+    model_save_path = paths['models_file'] / model_save_filname
 
     # Optimizer selection
     if optimizer_type.upper() == 'ADAM':
         optimizer = optim.Adam(model.parameters(), lr = lr, weight_decay = 1e-5)
     elif optimizer_type.upper() == 'SGD':
-        optimizer = optim.SGD(model.parameters(), lr = lr, nesterov = True ,weight_decay = 1e-5)
+        optimizer = optim.SGD(model.parameters(), lr = lr, momentum = 0.9, nesterov = True ,weight_decay = 1e-5)
     else:
         raise ValueError(f"Unsupported optimizer_type: {optimizer_type}. Choose 'Adam' or 'SGD'.")
     
@@ -316,16 +331,16 @@ def train_val_model(model: nn.Module, criterion: nn.Module, train_loader: DataLo
                     val_pred.extend(yhat.detach().squeeze(-1).cpu().numpy())
             
             avg_val_loss = val_loss / len(val_loader.dataset)
-            val_metrics = calculate_metrics(np.array(val_real), np.array(val_pred))
-            metrics_log['val_rmse'].append(val_metrics[0])
-            metrics_log['val_r'].append(val_metrics[1])
+            val_rmse, val_r = calculate_metrics(np.array(val_real), np.array(val_pred))
+            metrics_log['val_rmse'].append(val_rmse)
+            metrics_log['val_r'].append(val_r)
 
 
         if (epoch + 1) % 10 == 0 or epoch == epoch - 1: 
-            print(f"\n--- Epoch {epoch + 1:03d}/{epoch} ---")
-            print(f"Train Loss: {avg_train_loss:.4f} | RMSE: {train_metrics[0]:.4f} | R_Score: {train_metrics[1]:.4f} | D2_Abs: {train_metrics[2]:.4f} | D2_Tweedie: {train_metrics[3]:.4f}")
+            print(f"\n--- Epoch {epoch:03d}/{epoch + 1} ---")
+            print(f"Train | RMSE: {train_metrics[0]:.4f} | R_Score: {train_metrics[1]:.4f}")
             if val_loader:
-                print(f"Valid Loss: {avg_val_loss:.4f} | RMSE: {val_metrics[0]:.4f} | R_Score: {val_metrics[1]:.4f} | D2_Abs: {val_metrics[2]:.4f} | D2_Tweedie: {val_metrics[3]:.4f}")
+                print(f"Valid | RMSE: {val_rmse:.4f} | R_Score: {val_r:.4f}")
         
         if scheduler and val_loader:
             if isinstance(scheduler, optim.lr_scheduler.ReduceLROnPlateau):
@@ -338,7 +353,8 @@ def train_val_model(model: nn.Module, criterion: nn.Module, train_loader: DataLo
             if avg_val_loss < best_val_loss:
                 best_val_loss = avg_val_loss
                 best_model_weights = deepcopy(model.state_dict())
-                print(f"Epoch {epoch+1}: Val loss improved to {avg_val_loss:.4f}. Model snapshot updated.")
+                if (epoch + 1) % 2 == 0 or epoch == epoch - 1:
+                    print(f"Epoch {epoch+1}: Val loss improved to {avg_val_loss:.4f}. Model snapshot updated.")
             if early_stopper(avg_val_loss): break 
         elif not val_loader: 
             best_model_weights = deepcopy(model.state_dict())

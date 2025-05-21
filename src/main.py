@@ -50,6 +50,7 @@ def main():
 
     auroral_index_target = cfg['data']['auroral_index'].strip()
     model_type_config = cfg['nn']['type_model'].strip().upper()
+    
 
     cv_results_per_delay = []
 
@@ -66,6 +67,7 @@ def main():
 
             fold_train_df = development_df.iloc[train_indices]
             fold_val_df = development_df.iloc[val_indices]
+            
 
             train_solar_fold, train_index_fold = time_delay(fold_train_df, cfg, delay, 'train')
             val_solar_fold, val_index_fold = time_delay(fold_val_df, cfg, delay, 'val')
@@ -74,6 +76,26 @@ def main():
 
             train_torch_fold = DataTorch(train_solar_fold, train_index_fold, device)
             val_torch_fold = DataTorch(val_solar_fold, val_index_fold, device)
+        
+            batch_train_size = cfg['nn'].get('batch_train', 2080)
+            batch_val_size = cfg['nn'].get('batch_val', 2080)
+
+            train_loader_fold = DataLoader(train_torch_fold, batch_size = batch_train_size, shuffle = True)
+            val_loader_fold = DataLoader(val_torch_fold, batch_size = batch_val_size, shuffle = False)
+
+            model_fold = type_nn(cfg, x_train_shape = train_solar_fold.shape, delay = delay, device = device)
+            
+            criterion_fold = nn.MSELoss()
+
+            _, epoch_metrics_df_fold = train_val_model(
+                model = model_fold, criterion = criterion_fold, 
+                train_loader = train_loader_fold, val_loader = val_loader_fold,
+                config = cfg, paths = project_paths, 
+                delay = delay, 
+                device = device, seed = 42 + fold_count, 
+                fold_identifier = str(fold_count) 
+            )
+            break
         
 
 if __name__ == "__main__":
