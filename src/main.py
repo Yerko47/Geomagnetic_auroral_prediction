@@ -95,26 +95,31 @@ def main():
             
             criterion_fold = nn.MSELoss()
 
-            trained_model_fold, epoch_metrics_df_fold, best_val_loss_fold, path_save_fold  = train_val_model(
+            trained_model_fold, metrics_history_df, best_val_loss_fold, path_save_fold  = train_val_model(
                 model = model_fold, criterion = criterion_fold, 
                 train_loader = train_loader_fold, val_loader = val_loader_fold,
                 config = cfg, paths = project_paths, 
-                delay = delay, 
-                device = device, seed = 42 + fold_count, 
-                fold_identifier = str(fold_count) 
+                delay = delay, device = device, 
+                seed = 42 + fold_count, fold_identifier = str(fold_count) 
             )
+            print(metrics_history_df.columns)
+            metrics_plot(metrics_df = metrics_history_df, config = cfg, paths = project_paths, plot_title_suffix = f"Fold{fold_count}_Delay{delay}")
+
+            #! Arreglar metrics_plot, debido a que solo plotea el RMSE y el R-Score no. Estaba pensando que puede ser el nombre, ya que, coloqué si R está en las columnas, que se grafique y R está en Rmse. Para el futuro, debo colocar que la columna R sea R-Score o algo así
 
             # Update the best model for this delay if the actual fold is better
             if best_val_loss_fold < best_fold_delay['best_val_metric']:
-                best_fold_delay({
+                best_fold_delay.update({
                     'best_val_metric': best_val_loss_fold,
                     'best_model_path': path_save_fold,
                     'best_fold_id': fold_count,
                     'best_model_state_dict': deepcopy(trained_model_fold.state_dict())
                 })
-            
-            metrics_plot(metrics_df = epoch_metrics_df_fold, config = cfg, paths = project_paths, plot_title_suffix = f"Fold{fold_count}_Delay{delay}")
-           
+
+            break
+        break
+
+        #! Creo que en el test había error, debido a que no se encontraba el archivo a leer, entonces esto es lo segundo a corregir en el test del modelo
         #* 4. Testing the Best Model for the Current Delay
         # ------------------------------------------------
         test_solar, test_index, test_epoch = time_delay(test_df.copy(), cfg, delay, 'test')

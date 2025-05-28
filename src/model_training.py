@@ -256,7 +256,7 @@ def train_val_model(model: nn.Module, criterion: nn.Module, train_loader: DataLo
     run_specific_tag = f"_fold_{fold_identifier}" if fold_identifier else "_final"
     model_save_filname = f"{type_model}_{auroral_index}_delay_{delay}{run_specific_tag}.pt"
     model_save_path = paths['models_file'] / model_save_filname
-    result_path = paths['result_file'] / f"metrics_train_val_{type_model}_{auroral_index}_{delay}{fold_identifier}.feather"
+    result_path = paths['result_file'] / f"metrics_train_val_{type_model}_{auroral_index}_{delay}_{fold_identifier}.csv"
 
     # Optimizer selection
     if optimizer_type.upper() == 'ADAM':
@@ -269,7 +269,7 @@ def train_val_model(model: nn.Module, criterion: nn.Module, train_loader: DataLo
     #Scheduler selectionm
     schler = schler.strip().lower()
     if schler == 'reduce':
-        scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode = 'min', factor = 0.3, patience = schler_patience, verbose = True)
+        scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode = 'min', factor = 0.3, patience = schler_patience)
     elif schler == 'cosine':
         scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max = EPOCH, eta_min = 0)
     elif schler == 'cosinerw':
@@ -372,10 +372,10 @@ def train_val_model(model: nn.Module, criterion: nn.Module, train_loader: DataLo
     num_logged_epochs = len(metrics_log['train_rmse'])
     metrics_history_df_data = {}
     for key, value_list in metrics_log.items():
-        metrics_history_df_data[f'{key.replace("_", " ").upper()}_{delay}{"_" + fold_identifier if fold_identifier else ""}'] = value_list[:num_logged_epochs]
+        metrics_history_df_data[f'{key.replace("_", " ")}_{delay}{"_" + fold_identifier if fold_identifier else ""}'] = value_list[:num_logged_epochs]
     metrics_history_df = pd.DataFrame(metrics_history_df_data)
 
-    metrics_history_df.to_feather(result_path, index = False)
+    metrics_history_df.to_csv(result_path, index = False)
 
     return model, metrics_history_df, best_val_loss, model_save_path
 
@@ -418,7 +418,7 @@ def testing_model(model: nn.Module, criterion: Union[nn.Module, None], test_load
     model_load_filename = f"{type_model}_{auroral_index}_delay_{delay}{model_tag}.pt"
     model_load_path = paths['models_file'] / model_load_filename
     
-    pred_filname = paths['result_file'] / f"predictions_test_delay{delay}.feather"
+    pred_filname = paths['result_file'] / f"predictions_test_delay{delay}.csv"
 
     if not model_load_path.exists():
         # Fallback for models saved without a specific tag (e.g. if not using the CV workflow strictly)
@@ -492,7 +492,7 @@ def testing_model(model: nn.Module, criterion: Union[nn.Module, None], test_load
         result_df[f'{auroral_index}_real'] = - 1 * result_df[f'{auroral_index}_real']
         result_df[f'{auroral_index}_pred'] = - 1 * result_df[f'{auroral_index}_pred']
    
-    result_df.to_feather(pred_filname, index = False)
+    result_df.to_csv(pred_filname, index = False)
 
     return result_df, test_metrics_df
 

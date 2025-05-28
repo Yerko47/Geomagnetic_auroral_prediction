@@ -36,7 +36,7 @@ def setup_axis_style(ax: plt.Axes, xlabel: str = None, ylabel: str = None, xlabe
     if ylabel:
         ax.set_ylabel(ylabel, fontsize = ylabelsize)
     
-    ax.tick_params(axis = 'both', length = 7, width = 2, colors = 'black', grid_color = 'black', grid_alpha = 0.4, wich = 'major', labelsize = ticksize)
+    ax.tick_params(axis = 'both', length = 7, width = 2, color = 'black', grid_color = 'black', grid_alpha = 0.4, which = 'major', labelsize = ticksize)
     ax.grid(True)
 
     if ylabel:
@@ -161,7 +161,7 @@ def metrics_plot(metrics_df: pd.DataFrame, config: Dict[str, Any], paths: Dict[s
         plot_title_suffix (str): 
             Suffix to add to plot titles and filenames (e.g., fold ID, "FinalRetrained").
     """
-    metric_bases = ['RMSE', 'R SCORE']
+    metric_bases = ['rmse', 'r']
     auroral_index = config['data']['auroral_index'].replace("_INDEX", " Index")
     model_type = config['nn']['type_model']
 
@@ -178,24 +178,24 @@ def metrics_plot(metrics_df: pd.DataFrame, config: Dict[str, Any], paths: Dict[s
         filename_prefix += f"_{plot_title_suffix}" 
 
     for metric in metric_bases:
-        train_col = next((col for col in metrics_df.columns if metric in col and 'Train' in col), None)
-        val_col = next((col for col in metrics_df.columns if metric in col and 'Val' in col), None)
+        train_col = next((col for col in metrics_df.columns if metric in col and 'train' in col), None)
+        val_col = next((col for col in metrics_df.columns if metric in col and 'val' in col), None)
 
         plt.figure(figsize = (10, 6))
-        plt.title(f"{plot_title_prefix} - {metric} vs Epochs")
+        plt.title(f"{plot_title_prefix} - {metric.upper()} vs Epochs")
 
         if train_col:
             plt.plot(metrics_df.index + 1, metrics_df[train_col], label = 'Train', color = 'blue')
         if val_col:
             plt.plot(metrics_df.index + 1, metrics_df[train_col], label = 'Valid', color = 'red')
 
-        setup_axis_style(plt.gca(), xlabel = 'Epoch', ylabel = metric, ticksize = 12)
+        setup_axis_style(plt.gca(), xlabel = 'Epoch', ylabel = metric.upper(), ticksize = 12)
         plt.legend(fontsize = 12)
 
         # Determine save directory based on metric type
         save_dir = None
-        if 'RMSE' in metric: save_dir = paths['training_rmse']
-        elif 'R SCORE' in metric: save_dir = paths['training_rscore']
+        if 'rmse' in metric: save_dir = paths['training_rmse']
+        elif 'r' in metric: save_dir = paths['training_rscore']
         else: continue
 
         filename = save_dir / f"{filename_prefix}_{metric.replace(' ', '')}.png"
