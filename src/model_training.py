@@ -211,7 +211,7 @@ class EarlyStopping:
 
 
 #* TRAINING AND VALIDATION FUNCTION
-def train_val_model(model: nn.Module, criterion: nn.Module, train_loader: DataLoader, val_loader: Union[DataLoader, None], config: Dict[str, Any], paths: Dict[str, Path], delay: int, device: Union[str, torch.device], seed: int = 42, fold_identifier: str = "") -> Tuple[nn.Module, pd.DataFrame]:
+def train_val_model(model: nn.Module, criterion: nn.Module, train_loader: DataLoader, val_loader: Union[DataLoader, None], config: Dict[str, Any], paths: Dict[str, Path], delay: int, device: Union[str, torch.device], seed: int = 42, fold_identifier: str = "") -> Tuple[nn.Module, pd.DataFrame, float, Union[Path, None]]:
     """
     Train and validate the model. Can also be used for final training if val_loader is None.
     Args:
@@ -237,8 +237,8 @@ def train_val_model(model: nn.Module, criterion: nn.Module, train_loader: DataLo
             Identifier for the current fold in cross-validation.    
     
     Returns:
-        Tuple ([nn.Module, pd.DataFrame]):
-            Trained model with the best weights found during training and DataFrame containing training and validation metrics history for all epochs.
+        Tuple ([nn.Module, pd.DataFrame, float, Path]):
+            Trained model with the best weights found during training, DataFrame containing training and validation metrics history for all epochs, best validation RMSE achieved, and the path where the model was saved.
     """
     set_seed(seed)
     EPOCH = config['constant']['EPOCH']
@@ -256,6 +256,7 @@ def train_val_model(model: nn.Module, criterion: nn.Module, train_loader: DataLo
     run_specific_tag = f"_fold_{fold_identifier}" if fold_identifier else "_final"
     model_save_filname = f"{type_model}_{auroral_index}_delay_{delay}{run_specific_tag}.pt"
     model_save_path = paths['models_file'] / model_save_filname
+    result_path = paths['result_file'] / f"metrics_train_val_{type_model}_{auroral_index}_{delay}{fold_identifier}.feather"
 
     # Optimizer selection
     if optimizer_type.upper() == 'ADAM':
@@ -355,7 +356,7 @@ def train_val_model(model: nn.Module, criterion: nn.Module, train_loader: DataLo
                 best_model_weights = deepcopy(model.state_dict())
                 if (epoch + 1) % 2 == 0 or epoch == epoch - 1:
                     print(f"Epoch {epoch+1}: Val loss improved to {avg_val_loss:.4f}. Model snapshot updated.")
-            if early_stopper(avg_val_loss): break 
+            if early_stopper(avg_val_loss): continue
         elif not val_loader: 
             best_model_weights = deepcopy(model.state_dict())
 
@@ -371,10 +372,12 @@ def train_val_model(model: nn.Module, criterion: nn.Module, train_loader: DataLo
     num_logged_epochs = len(metrics_log['train_rmse'])
     metrics_history_df_data = {}
     for key, value_list in metrics_log.items():
-        metrics_history_df_data[f'{key.replace("_", " ").title()}_{delay}{"_" + fold_identifier if fold_identifier else ""}'] = value_list[:num_logged_epochs]
+        metrics_history_df_data[f'{key.replace("_", " ").upper()}_{delay}{"_" + fold_identifier if fold_identifier else ""}'] = value_list[:num_logged_epochs]
     metrics_history_df = pd.DataFrame(metrics_history_df_data)
 
-    return model, metrics_history_df
+    metrics_history_df.to_feather(result_path, index = False)
+
+    return model, metrics_history_df, best_val_loss, model_save_path
 
 
 #* TESTING FUNCTION
@@ -414,6 +417,8 @@ def testing_model(model: nn.Module, criterion: Union[nn.Module, None], test_load
 
     model_load_filename = f"{type_model}_{auroral_index}_delay_{delay}{model_tag}.pt"
     model_load_path = paths['models_file'] / model_load_filename
+    
+    pred_filname = paths['result_file'] / f"predictions_test_delay{delay}.feather"
 
     if not model_load_path.exists():
         # Fallback for models saved without a specific tag (e.g. if not using the CV workflow strictly)
@@ -426,7 +431,7 @@ def testing_model(model: nn.Module, criterion: Union[nn.Module, None], test_load
             raise FileNotFoundError(f"Model file not found for testing: {model_load_path} or {model_load_path_fallback}")
         
     print(f"\n===== Testing Model: {type_model} for {auroral_index} with Delay {delay} ({'Final Evaluation' if is_final_test else 'Test Run'}) =====")
-    print(f"Loading model from: {model_load_path}")
+    print(f"Loading model from: {model_load_path}\n")
 
     try:
         # It's better if main.py instantiates the model shell first using type_nn, then passes it here.
@@ -486,6 +491,8 @@ def testing_model(model: nn.Module, criterion: Union[nn.Module, None], test_load
     if auroral_index == 'AL_INDEX':
         result_df[f'{auroral_index}_real'] = - 1 * result_df[f'{auroral_index}_real']
         result_df[f'{auroral_index}_pred'] = - 1 * result_df[f'{auroral_index}_pred']
+   
+    result_df.to_feather(pred_filname, index = False)
 
     return result_df, test_metrics_df
 

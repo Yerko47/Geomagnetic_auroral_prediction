@@ -122,6 +122,133 @@ def get_column_mapping(df_columns: List[str]) -> Dict[str, str]:
 #* LOAD STORM DATA
 def load_storm_data(paths: Dict[str, Path], min_date_str: str = None) -> pd.DataFrame:
     """
+    Loads storm event data from 'storm_list.csv' and filters by a minimum date.
+
+    Args:
+        paths (Dict[str, Path]): 
+            Dictionary of project paths, expecting 'processed_file'.
+        min_date_str (str, optional): 
+            Minimum date (YYYY-MM-DD) for filtering.
+    Returns:
+        storm_df (pd.DataFrame): 
+            DataFrame with storm 'Epoch' timestamps.
     """
     storm_list_file = paths['processed_file'] / 'storm_list.csv'
+    if not storm_list_file.exists():
+        ValueError(f"Storm list file not found at {storm_list_file}")
+
+    storm_df = pd.read_csv(storm_list_file, header = None, names = ['Epoch'])
+    storm_df['Epoch'] = pd.to_datetime(storm_df['Epoch'])
+
+    if min_date_str:
+        min_date = pd.to_datetime(min_date_str)
+        storm_df = storm_df[storm_df['Epoch'] >= min_date]
     
+    return storm_df
+    
+#* METRICS PLOT (TRAINING/VALIDATION CRUVES)
+def metrics_plot(metrics_df: pd.DataFrame, config: Dict[str, Any], paths: Dict[str, Path], plot_title_suffix: str = "") -> None:
+    """
+    Generates plots for training and validation metrics (RMSE, R-Score).
+
+    Args:
+        metrics_df (pd.DataFrame): 
+            DataFrame with metrics history per epoch. Column names should follow patterns like 'Train Rmse_DELAY_FOLD', 'Val Rmse_DELAY_FOLD'.
+        config (Dict[str, Any]): 
+            Configuration dictionary.
+        paths (Dict[str, Path]): 
+            Project paths dictionary.
+        plot_title_suffix (str): 
+            Suffix to add to plot titles and filenames (e.g., fold ID, "FinalRetrained").
+    """
+    metric_bases = ['RMSE', 'R SCORE']
+    auroral_index = config['data']['auroral_index'].replace("_INDEX", " Index")
+    model_type = config['nn']['type_model']
+
+    # Extract delay from column names
+    delay_str_part = ""
+    first_col_parts = metrics_df.columns[0].split('_')
+    if len(first_col_parts) > 1 and first_col_parts[1].isdigit():
+        delay_str_part = f"Delay ({first_col_parts[1]})"
+
+    plot_title_prefix = f"{auroral_index}-{model_type} {delay_str_part}"
+    filename_prefix = f"{model_type}{delay_str_part}_{auroral_index.replace(' Index', '')}"
+    if plot_title_suffix:
+        plot_title_prefix += f"-{plot_title_suffix}"
+        filename_prefix += f"_{plot_title_suffix}" 
+
+    for metric in metric_bases:
+        train_col = next((col for col in metrics_df.columns if metric in col and 'Train' in col), None)
+        val_col = next((col for col in metrics_df.columns if metric in col and 'Val' in col), None)
+
+        plt.figure(figsize = (10, 6))
+        plt.title(f"{plot_title_prefix} - {metric} vs Epochs")
+
+        if train_col:
+            plt.plot(metrics_df.index + 1, metrics_df[train_col], label = 'Train', color = 'blue')
+        if val_col:
+            plt.plot(metrics_df.index + 1, metrics_df[train_col], label = 'Valid', color = 'red')
+
+        setup_axis_style(plt.gca(), xlabel = 'Epoch', ylabel = metric, ticksize = 12)
+        plt.legend(fontsize = 12)
+
+        # Determine save directory based on metric type
+        save_dir = None
+        if 'RMSE' in metric: save_dir = paths['training_rmse']
+        elif 'R SCORE' in metric: save_dir = paths['training_rscore']
+        else: continue
+
+        filename = save_dir / f"{filename_prefix}_{metric.replace(' ', '')}.png"
+        plt.savefig(filename)
+        plt.close()
+    
+    print(f"Saved training/validation metric plots")
+        
+
+#* DELAY METRICS PLOT
+def delay_metrics_plot(cv_performance_df: pd.DataFrame, config: Dict[str, Any], paths: Dict[str, Path]) -> None:
+    """
+    Generates plots of average CV metrics vs. different delay lengths.
+
+    Args:
+        cv_performance_df (pd.DataFrame): 
+            DataFrame from main.py with columns like 'delay', 'avg_cv_rmse', 'avg_cv_r_score'.
+        config (Dict[str, Any]): 
+            Configuration dictionary.
+        paths (Dict[str, Path]): 
+            Project paths dictionary.
+    """
+    if cv_performance_df.empty or 'delay' not in cv_performance_df.columns:
+        return
+    
+    auroral_index = config['data']['auroral_index'].replace('_INDEX', ' Index')
+    model_type = config['nn']['model_type']
+    delay_values = sorted(cv_performance_df['delay'].unique())
+
+    # Metrics to plot, assuming columns like 'arg_cv_rmse', 'avg_cv_r_score' exist
+    metrics_to_plot = {
+        'avg_cv_rmse': ('Average CV RMSE', paths['test_rmse']),
+        'avg_cv_r': ('Average CV R', paths['test_rscore'])
+    }
+
+    for metric_col, (metric_label, save_dir) in metrics_to_plot.items():
+        if metric_col not in cv_performance_df.columns:
+            continue
+        
+        plt.figure(figsize = (10, 6))
+        title = f"{metric_label} vs Delay ({auroral_index}) - {model_type}"
+        plt.title(title, fontsize = 16, fontweight = 'bold')
+
+        plt.plot(cv_performance_df['delay'], cv_performance_df[metric_col], marker = 'o', color = 'dodgerblue', linewidth = 2, linestyle = '-', label = metric_label, markersize = 8)
+        plt.legend(fontsize = 12)
+        setup_axis_style(plt.gca(), xlabel = 'Delay', ylabel = metric_label, ticksize = 12)
+
+        filname_base = metric_col.replace('avg_cv_', '').replace('_', '')
+        filname = save_dir / f"{filname_base}_vs_delay_{auroral_index.replace(' Index', '')}_{model_type}.png"
+        plt.savefig(filname)
+        plt.close()
+
+    print(f"CV vs Delay performance plots saved.")
+
+
+
