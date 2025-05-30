@@ -182,14 +182,14 @@ def metrics_plot(metrics_df: pd.DataFrame, config: Dict[str, Any], paths: Dict[s
         val_col = next((col for col in metrics_df.columns if metric in col and 'val' in col), None)
 
         plt.figure(figsize = (10, 6))
-        plt.title(f"{plot_title_prefix} - {metric.replace("_score", "").upper()} vs Epochs")
+        plt.title(f"{plot_title_prefix} - {metric.replace('_score', '').upper()} vs Epochs", fontsize = 16, fontweight = 'bold')
 
         if train_col:
-            plt.plot(metrics_df.index + 1, metrics_df[train_col], label = 'Train', color = 'blue')
+            plt.plot(metrics_df.index + 1, metrics_df[train_col], label = 'Train', color = 'dodgerblue')
         if val_col:
-            plt.plot(metrics_df.index + 1, metrics_df[train_col], label = 'Valid', color = 'red')
+            plt.plot(metrics_df.index + 1, metrics_df[val_col], label = 'Valid', color = 'red')
 
-        setup_axis_style(plt.gca(), xlabel = 'Epoch', ylabel = metric.upper(), ticksize = 12)
+        setup_axis_style(plt.gca(), xlabel = 'Epoch', ylabel = metric.upper().replace('_SCORE', ' Score'), ticksize = 12)
         plt.legend(fontsize = 12)
 
         # Determine save directory based on metric type
@@ -202,53 +202,54 @@ def metrics_plot(metrics_df: pd.DataFrame, config: Dict[str, Any], paths: Dict[s
         plt.savefig(filename)
         plt.close()
     
-    print(f"Saved training/validation metric plots")
+    print(f"\nSaved training/validation metric plots\n")
         
 
 #* DELAY METRICS PLOT
-def delay_metrics_plot(cv_performance_df: pd.DataFrame, config: Dict[str, Any], paths: Dict[str, Path]) -> None:
+def delay_metrics_plot(metric_test: pd.DataFrame, delay_value: int, config: Dict[str, Any], paths: Dict[str, Path]) -> None:
     """
-    Generates plots of average CV metrics vs. different delay lengths.
+    Generates plots for test metrics (RMSE, R-Score) against delay values.
 
     Args:
-        cv_performance_df (pd.DataFrame): 
-            DataFrame from main.py with columns like 'delay', 'avg_cv_rmse', 'avg_cv_r_score'.
+        metric_test (pd.DataFrame): 
+            DataFrame with test metrics. Columns should follow patterns like 'Test_RMSE', 'Test_R_Score'.
+        delay_value (int): 
+            The delay value to plot against.
         config (Dict[str, Any]): 
             Configuration dictionary.
         paths (Dict[str, Path]): 
             Project paths dictionary.
+
     """
-    if cv_performance_df.empty or 'delay' not in cv_performance_df.columns:
-        return
-    
+    metric_bases = ['RMSE', 'R_Score']
     auroral_index = config['data']['auroral_index'].replace('_INDEX', ' Index')
-    model_type = config['nn']['model_type']
-    delay_values = sorted(cv_performance_df['delay'].unique())
+    model_type = config['nn']['type_model']
 
-    # Metrics to plot, assuming columns like 'arg_cv_rmse', 'avg_cv_r_score' exist
-    metrics_to_plot = {
-        'avg_cv_rmse': ('Average CV RMSE', paths['test_rmse']),
-        'avg_cv_r': ('Average CV R', paths['test_rscore'])
-    }
 
-    for metric_col, (metric_label, save_dir) in metrics_to_plot.items():
-        if metric_col not in cv_performance_df.columns:
-            continue
-        
+    for metric in metric_bases:
         plt.figure(figsize = (10, 6))
-        title = f"{metric_label} vs Delay ({auroral_index}) - {model_type}"
+        title = f"{metric.replace('_', ' ')} vs Delay ({auroral_index} - {model_type})"
         plt.title(title, fontsize = 16, fontweight = 'bold')
+        
+        test_col = [col for col in metric_test.columns if metric in col and 'Test' in col]
 
-        plt.plot(cv_performance_df['delay'], cv_performance_df[metric_col], marker = 'o', color = 'dodgerblue', linewidth = 2, linestyle = '-', label = metric_label, markersize = 8)
-        plt.legend(fontsize = 12)
-        setup_axis_style(plt.gca(), xlabel = 'Delay', ylabel = metric_label, ticksize = 12)
+        if test_col:
+            plt.plot(delay_value, metric_test[test_col].values.flatten(), marker = 'o', color = 'dodgerblue', linewidth = 1.5, linestyle = 'dashed', markersize = 8)
 
-        filname_base = metric_col.replace('avg_cv_', '').replace('_', '')
-        filname = save_dir / f"{filname_base}_vs_delay_{auroral_index.replace(' Index', '')}_{model_type}.png"
-        plt.savefig(filname)
+            y_name = metric.replace('_', ' ')
+            setup_axis_style(plt.gca(), xlabel = 'Delay', ylabel = y_name, ticksize = 12)
+
+            
+        if 'RMSE' in metric: save_dir = paths["test_rmse"]
+        elif 'R_Score' in metric: save_dir = paths["test_rscore"]
+        else: continue
+
+        filename = save_dir / f"{metric.upper()}_Test_vs_Delay{auroral_index.replace(' Index', '')}_{model_type}.png"
+
+        plt.savefig(filename)
         plt.close()
 
-    print(f"CV vs Delay performance plots saved.")
+    print(f"Metric Test vs Delay {delay_value} performance plots saved.\n")
 
 
 

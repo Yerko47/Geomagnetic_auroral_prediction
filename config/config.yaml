@@ -1,7 +1,7 @@
 constant:
   in_year: 1995
   out_year: 2018
-  delay_length: [1, 30, 40, 50, 60]
+  delay_length: [1, 15, 30, 40, 50, 60]
   EPOCH: 200
   omni_param: [
     "B_Total",

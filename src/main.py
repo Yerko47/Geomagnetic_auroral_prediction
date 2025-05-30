@@ -45,17 +45,17 @@ def main():
 
     del df, df_storm
 
+
     #* 2. Initial Division: Development and Final Testing (Hold-Out)
     # --------------------------------------------------------------
     development_df, test_df = create_set_prediction(df_scaler, cfg)
     del df_scaler
 
-    auroral_index_target = cfg['data']['auroral_index'].strip()
-    model_type_config = cfg['nn']['type_model'].strip().upper()
-    
-    #* 3. Cross Validation
+
+    #* 3. Delay Loop
     # --------------------
-    cv_results_per_delay = []
+    delay_value = []
+    metric_test_delay = pd.DataFrame()
 
     for delay in cfg['constant']['delay_length']:
         print(f"\n{'='*4} Cross Validation for Delay: {delay} {'='*4}")
@@ -72,6 +72,9 @@ def main():
         batch_train_size = cfg['nn'].get('batch_train', 2080)
         batch_val_size = cfg['nn'].get('batch_val', 2080)
 
+
+        #* 4. Cross Validation
+        # --------------------
         for train_indices, val_indices in cross_validation(development_df, cfg):
             fold_count += 1
             fold_id_str = f"delay{delay}_fold{fold_count}"
@@ -102,11 +105,8 @@ def main():
                 delay = delay, device = device, 
                 seed = 42 + fold_count, fold_identifier = str(fold_count) 
             )
-            print(metrics_history_df.columns)
-            metrics_plot(metrics_df = metrics_history_df, config = cfg, paths = project_paths, plot_title_suffix = f"Fold{fold_count}_Delay{delay}")
 
-            #! Arreglar metrics_plot, debido a que solo plotea el RMSE y el R-Score no. Estaba pensando que puede ser el nombre, ya que, coloqué si R está en las columnas, que se grafique y R está en Rmse. Para el futuro, debo colocar que la columna R sea R-Score o algo así
-            #? Creo que se arregló
+            metrics_plot(metrics_df = metrics_history_df, config = cfg, paths = project_paths, plot_title_suffix = f"Fold{fold_count}_Delay{delay}")
 
             # Update the best model for this delay if the actual fold is better
             if best_val_loss_fold < best_fold_delay['best_val_metric']:
@@ -115,13 +115,11 @@ def main():
                     'best_model_path': path_save_fold,
                     'best_fold_id': fold_count,
                     'best_model_state_dict': deepcopy(trained_model_fold.state_dict())
-                })
-
+                })           
             break
-        break
+        
 
-        #! Creo que en el test había error, debido a que no se encontraba el archivo a leer, entonces esto es lo segundo a corregir en el test del modelo
-        #* 4. Testing the Best Model for the Current Delay
+        #* 5. Testing the Best Model for the Current Delay
         # ------------------------------------------------
         test_solar, test_index, test_epoch = time_delay(test_df.copy(), cfg, delay, 'test')
 
@@ -137,10 +135,13 @@ def main():
         result_df, test_metrics_df = testing_model(
             model = model_test, criterion = criterion,
             test_loader = test_loader, config = cfg, 
-            paths = project_paths, delay = delay, 
-            test_epoch = test_epoch, device = device
+            paths = project_paths, best_model_file = best_fold_delay['best_model_path'], 
+            delay = delay, test_epoch = test_epoch, device = device
         )
 
+        metric_test_delay = pd.concat([metric_test_delay, test_metrics_df], axis = 1, ignore_index = False)
+        delay_value.append(delay)
+        delay_metrics_plot(metric_test = metric_test_delay, delay_value = delay_value, config = cfg, paths = project_paths)
         
 
         

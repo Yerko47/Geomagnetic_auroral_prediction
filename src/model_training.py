@@ -256,7 +256,7 @@ def train_val_model(model: nn.Module, criterion: nn.Module, train_loader: DataLo
     run_specific_tag = f"_fold_{fold_identifier}" if fold_identifier else "_final"
     model_save_filname = f"{type_model}_{auroral_index}_delay_{delay}{run_specific_tag}.pt"
     model_save_path = paths['models_file'] / model_save_filname
-    result_path = paths['result_file'] / f"metrics_train_val_{type_model}_{auroral_index}_{delay}_{fold_identifier}.csv"
+    result_path = paths['metrics_result_file'] / f"metrics_train_val_{type_model}_{auroral_index}_{delay}_{fold_identifier}.csv"
 
     # Optimizer selection
     if optimizer_type.upper() == 'ADAM':
@@ -372,7 +372,7 @@ def train_val_model(model: nn.Module, criterion: nn.Module, train_loader: DataLo
     num_logged_epochs = len(metrics_log['train_rmse'])
     metrics_history_df_data = {}
     for key, value_list in metrics_log.items():
-        metrics_history_df_data[f'{key.replace("_", " ")}_{delay}{"_" + fold_identifier if fold_identifier else ""}'] = value_list[:num_logged_epochs]
+        metrics_history_df_data[f'{key}_{delay}{"_" + fold_identifier if fold_identifier else ""}'] = value_list[:num_logged_epochs]
     metrics_history_df = pd.DataFrame(metrics_history_df_data)
 
     metrics_history_df.to_csv(result_path, index = False)
@@ -381,7 +381,7 @@ def train_val_model(model: nn.Module, criterion: nn.Module, train_loader: DataLo
 
 
 #* TESTING FUNCTION
-def testing_model(model: nn.Module, criterion: Union[nn.Module, None], test_loader: DataLoader, config: Dict[str, Any], paths: Dict[str, Path], delay: int, test_epoch: pd.Series, device: Union[str, torch.device], is_final_test: bool = False) -> Tuple[pd.DataFrame, pd.DataFrame]:
+def testing_model(model: nn.Module, criterion: Union[nn.Module, None], test_loader: DataLoader, config: Dict[str, Any], paths: Dict[str, Path], best_model_file: Dict[str, Path], delay: int, test_epoch: pd.Series, device: Union[str, torch.device], is_final_test: bool = False) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """
     Evaluate a trained model on a test dataset and return predictions and metrics.
 
@@ -415,7 +415,7 @@ def testing_model(model: nn.Module, criterion: Union[nn.Module, None], test_load
     auroral_index = config['data']['auroral_index']
     model_tag = "final" if is_final_test else "test"
 
-    model_load_filename = f"{type_model}_{auroral_index}_delay_{delay}{model_tag}.pt"
+    model_load_filename = best_model_file
     model_load_path = paths['models_file'] / model_load_filename
     
     pred_filname = paths['result_file'] / f"predictions_test_delay{delay}.csv"
@@ -455,17 +455,11 @@ def testing_model(model: nn.Module, criterion: Union[nn.Module, None], test_load
             loss = criterion(yhat, y)
             test_loss += loss.item() * x.size(0)
 
-            test_real.extend(y.detach().squeeze(-1).cpu().numpy())
-            test_pred.extend(yhat.detach().squeeze(-1).cpu().numpy())
-    
-    np_real = np.concatenate(test_real) if test_real else np.array([])
-    np_pred = np.concatenate(test_pred) if test_pred else np.array([])
+            test_pred.append(yhat.detach().squeeze(-1).cpu().numpy())
+            test_real.append(y.detach().cpu().numpy())
 
-    if np_real.size == 0 or np_pred.size == 0:
-        print("Warning: No test predictions or real values found. Returning empty DataFrames.")
-        return pd.DataFrame(), pd.DataFrame()
     
-    test_metrics = calculate_metrics(np_real, np_pred)
+    test_metrics = calculate_metrics(np.concatenate(test_real, axis = 0), np.concatenate(test_pred, axis = 0))
     avg_test_loss_str = f"{test_loss / len(test_loader.dataset):.4f}" if criterion and len(test_loader.dataset) > 0 else "N/A"
 
     print(f"\nTest Results ---")
@@ -481,11 +475,13 @@ def testing_model(model: nn.Module, criterion: Union[nn.Module, None], test_load
         f'Test_RMSE{metric_col_suffix}': [test_metrics[0]],
         f'Test_R_Score{metric_col_suffix}': [test_metrics[1]]
     })
+    np_real = np.concatenate(test_real, axis = 0).tolist()
+    np_pred = np.concatenate(test_pred, axis = 0).tolist()
 
     result_df = pd.DataFrame({
         'Epoch': test_epoch,
-        f'{auroral_index}_real': np_real.tolist(),
-        f'{auroral_index}_pred': np_pred.tolist()
+        f'{auroral_index}_real': np.concatenate(test_real, axis = 0).tolist(),
+        f'{auroral_index}_pred': np.concatenate(test_pred, axis = 0).tolist()
     })
 
     if auroral_index == 'AL_INDEX':
