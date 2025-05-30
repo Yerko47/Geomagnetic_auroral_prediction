@@ -338,7 +338,7 @@ def train_val_model(model: nn.Module, criterion: nn.Module, train_loader: DataLo
 
 
         if (epoch + 1) % 10 == 0 or epoch == epoch - 1: 
-            print(f"\n--- Epoch {epoch:03d}/{epoch + 1} ---")
+            print(f"\n--- Epoch {epoch:03d}/{EPOCH} ---")
             print(f"Train | RMSE: {train_metrics[0]:.4f} | R Score: {train_metrics[1]:.4f}")
             if val_loader:
                 print(f"Valid | RMSE: {val_rmse:.4f} | R Score: {val_r:.4f}")

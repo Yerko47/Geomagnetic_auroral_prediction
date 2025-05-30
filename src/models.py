@@ -20,10 +20,10 @@ class ANN(nn.Module):
     def __init__(self, input_size: int, drop: float):
         super(ANN, self).__init__()
         self.fc_layers = nn.Sequential(
-            nn.Linear(input_size, 512), nn.ReLU(), nn.BatchNorm1d(512), nn.Dropout(drop),
-            nn.Linear(512, 256), nn.ReLU(), nn.BatchNorm1d(256), nn.Dropout(drop),
+            nn.Linear(input_size, 256), nn.ReLU(), nn.BatchNorm1d(256), nn.Dropout(drop),
             nn.Linear(256, 128), nn.ReLU(), nn.BatchNorm1d(128), nn.Dropout(drop),
             nn.Linear(128, 64), nn.ReLU(), nn.BatchNorm1d(64), nn.Dropout(drop),
+            nn.Linear(64, 64), nn.ReLU(), nn.BatchNorm1d(64), nn.Dropout(drop),
             nn.Linear(64, 32), nn.ReLU(), nn.BatchNorm1d(32), nn.Dropout(drop),
             nn.Linear(32, 16), nn.ReLU(), nn.BatchNorm1d(16), nn.Dropout(drop),
             nn.ReLU(),

@@ -116,7 +116,6 @@ def main():
                     'best_fold_id': fold_count,
                     'best_model_state_dict': deepcopy(trained_model_fold.state_dict())
                 })           
-            break
         
 
         #* 5. Testing the Best Model for the Current Delay
