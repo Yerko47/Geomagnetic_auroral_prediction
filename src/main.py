@@ -106,6 +106,7 @@ def main():
             metrics_plot(metrics_df = metrics_history_df, config = cfg, paths = project_paths, plot_title_suffix = f"Fold{fold_count}_Delay{delay}")
 
             #! Arreglar metrics_plot, debido a que solo plotea el RMSE y el R-Score no. Estaba pensando que puede ser el nombre, ya que, coloqué si R está en las columnas, que se grafique y R está en Rmse. Para el futuro, debo colocar que la columna R sea R-Score o algo así
+            #? Creo que se arregló
 
             # Update the best model for this delay if the actual fold is better
             if best_val_loss_fold < best_fold_delay['best_val_metric']:

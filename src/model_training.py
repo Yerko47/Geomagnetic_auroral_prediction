@@ -285,9 +285,9 @@ def train_val_model(model: nn.Module, criterion: nn.Module, train_loader: DataLo
     best_model_weights = deepcopy(model.state_dict())
     best_val_loss = float('inf') if val_loader else 0
 
-    metrics_log = {'train_rmse': [], 'train_r': []}
+    metrics_log = {'train_rmse': [], 'train_r_score': []}
     if val_loader:
-        metrics_log.update({'val_rmse': [], 'val_r': []})
+        metrics_log.update({'val_rmse': [], 'val_r_score': []})
 
     print(f"\n{'=' * 5} Training Model: {type_model} for {auroral_index} with Delay {delay} {fold_identifier} {'=' * 5}")
 
@@ -313,7 +313,7 @@ def train_val_model(model: nn.Module, criterion: nn.Module, train_loader: DataLo
         avg_train_loss = train_loss / len(train_loader.dataset)
         train_metrics = calculate_metrics(np.array(train_real), np.array(train_pred))
         metrics_log['train_rmse'].append(train_metrics[0])
-        metrics_log['train_r'].append(train_metrics[1])
+        metrics_log['train_r_score'].append(train_metrics[1])
 
 
         if val_loader:
@@ -334,14 +334,14 @@ def train_val_model(model: nn.Module, criterion: nn.Module, train_loader: DataLo
             avg_val_loss = val_loss / len(val_loader.dataset)
             val_rmse, val_r = calculate_metrics(np.array(val_real), np.array(val_pred))
             metrics_log['val_rmse'].append(val_rmse)
-            metrics_log['val_r'].append(val_r)
+            metrics_log['val_r_score'].append(val_r)
 
 
         if (epoch + 1) % 10 == 0 or epoch == epoch - 1: 
             print(f"\n--- Epoch {epoch:03d}/{epoch + 1} ---")
-            print(f"Train | RMSE: {train_metrics[0]:.4f} | R_Score: {train_metrics[1]:.4f}")
+            print(f"Train | RMSE: {train_metrics[0]:.4f} | R Score: {train_metrics[1]:.4f}")
             if val_loader:
-                print(f"Valid | RMSE: {val_rmse:.4f} | R_Score: {val_r:.4f}")
+                print(f"Valid | RMSE: {val_rmse:.4f} | R Score: {val_r:.4f}")
         
         if scheduler and val_loader:
             if isinstance(scheduler, optim.lr_scheduler.ReduceLROnPlateau):

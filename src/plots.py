@@ -161,7 +161,7 @@ def metrics_plot(metrics_df: pd.DataFrame, config: Dict[str, Any], paths: Dict[s
         plot_title_suffix (str): 
             Suffix to add to plot titles and filenames (e.g., fold ID, "FinalRetrained").
     """
-    metric_bases = ['rmse', 'r']
+    metric_bases = ['rmse', 'r_score']
     auroral_index = config['data']['auroral_index'].replace("_INDEX", " Index")
     model_type = config['nn']['type_model']
 
@@ -182,7 +182,7 @@ def metrics_plot(metrics_df: pd.DataFrame, config: Dict[str, Any], paths: Dict[s
         val_col = next((col for col in metrics_df.columns if metric in col and 'val' in col), None)
 
         plt.figure(figsize = (10, 6))
-        plt.title(f"{plot_title_prefix} - {metric.upper()} vs Epochs")
+        plt.title(f"{plot_title_prefix} - {metric.replace("_score", "").upper()} vs Epochs")
 
         if train_col:
             plt.plot(metrics_df.index + 1, metrics_df[train_col], label = 'Train', color = 'blue')
@@ -195,7 +195,7 @@ def metrics_plot(metrics_df: pd.DataFrame, config: Dict[str, Any], paths: Dict[s
         # Determine save directory based on metric type
         save_dir = None
         if 'rmse' in metric: save_dir = paths['training_rmse']
-        elif 'r' in metric: save_dir = paths['training_rscore']
+        elif 'r_score' in metric: save_dir = paths['training_rscore']
         else: continue
 
         filename = save_dir / f"{filename_prefix}_{metric.replace(' ', '')}.png"
