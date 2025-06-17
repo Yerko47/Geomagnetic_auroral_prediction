@@ -19,6 +19,7 @@ El sistema está diseñado para ser configurable a través de un archivo `config
     * Unidad Recurrente Cerrada (GRU) bidireccional
     * Red Convolucional Temporal (TCNN)
     * Transformer (basado en encoder)
+    * Combinaciones de modelos (Por ahora TCNN + LSTM)
 * **Entrenamiento y Evaluación Robustos**:
     * División de datos en conjuntos de desarrollo y prueba final (hold-out).
     * Validación Cruzada Temporal (`TimeSeriesSplit`) para la selección de hiperparámetros (ej. `delay_length`).
