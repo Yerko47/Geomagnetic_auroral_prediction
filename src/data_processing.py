@@ -421,7 +421,7 @@ def cross_validation(development_df: pd.DataFrame, config: Dict[str, Any]) -> It
 
     n_split = config['cv']['n_split']
     gap = config['cv']['gap']
-    max_train_size = len(development_df)/2 if config['cv']['max_train_size'] == 0 else config['cv']['max_train_size']
+    max_train_size = len(development_df)//2 if config['cv']['max_train_size'] == 0 else config['cv']['max_train_size']
 
     n_split_new = max(2, n_split) if len(development_df) > n_split else 1
 
