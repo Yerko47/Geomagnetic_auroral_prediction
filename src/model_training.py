@@ -13,7 +13,7 @@ from torch.utils.data import DataLoader
 
 from sklearn.metrics import root_mean_squared_error, r2_score
 
-from models import ANN, CNN, LSTM, GRU, TCNN, TransformerModel
+from models import ANN, CNN, LSTM, GRU, TCNN, TransformerModel, TCNN_LSTM
 
 #* SELECTION MODEL
 def type_nn(config: Dict[str, Any], x_train_shape: Tuple[int, ...], delay: int, device: Union[str, torch.device]) -> nn.Module:
@@ -67,12 +67,11 @@ def type_nn(config: Dict[str, Any], x_train_shape: Tuple[int, ...], delay: int, 
     hidden_neurons_gru = model_config.get('hidden_neurons_gru')
     
     num_channels_list_tcnn = model_config.get('num_chanel_list_tcnn')
-    kernel_size_tcnn = model_config.get('kernel_size')
 
-    
     default_d_model = x_train_shape[2] if type_model == 'TRANSFORMER' and len(x_train_shape) == 3 else 64
     d_model_transformer = model_config.get('d_model_transformer', default_d_model)
     nhead_transformer = model_config.get('nhead_transformer')
+
     if d_model_transformer % nhead_transformer != 0:
         raise ValueError(f"d_model_transformer ({d_model_transformer}) must be divisible by nhead_transformer ({nhead_transformer})")
     
@@ -115,8 +114,8 @@ def type_nn(config: Dict[str, Any], x_train_shape: Tuple[int, ...], delay: int, 
             input_size = x_train_shape[1]
             sequence_length = x_train_shape[2]
             if sequence_length == delay:
-                model = TCNN(input_size, num_channels_list_tcnn, kernel_size_tcnn, drop, delay)
-            print(f"Instantiated TCNN model with input_channels = {input_size}, kernel_size = {kernel_size_tcnn}, sequence_length = {delay}")
+                model = TCNN(input_size, num_channels_list_tcnn, kernel_size, drop, delay)
+            print(f"Instantiated TCNN model with input_channels = {input_size}, kernel_size = {kernel_size}, sequence_length = {delay}")
 
     elif type_model == 'TRANSFORMER':
         if len(x_train_shape) >= 3:
@@ -125,6 +124,17 @@ def type_nn(config: Dict[str, Any], x_train_shape: Tuple[int, ...], delay: int, 
             if sequence_length == delay:
                 model = TransformerModel(input_size, d_model_transformer, nhead_transformer, num_encoder_layers_transformer, dim_feedforward_transformer, drop, delay)
             print(f"Instantiated Transformer model with input_features = {input_size}, d_model = {d_model_transformer}, nhead = {nhead_transformer}, num_encoder_layers = {num_encoder_layers_transformer}, dim_feedforward = {dim_feedforward_transformer}, sequence_length = {delay}")
+
+    elif type_model == 'TCNN_LSTM':
+        if len(x_train_shape) >= 3:
+            input_size = x_train_shape[1]
+            sequence_length = x_train_shape[2]
+            print(sequence_length)
+            if sequence_length == delay:
+                model = TCNN_LSTM(input_channels=input_size, input_size=input_size, tcnn_channels=num_channels_list_tcnn, kernel_size=kernel_size, lstm_hidden=hidden_neurons_lstm, num_lstm_layers=num_lstm_layers, dropout_rate=drop)
+            print(f"Instantiated TCNN_LSTM model with:")
+            print(f"  - LSTM: input_size = {input_size}, layers = {num_lstm_layers}, hidden_neurons = {hidden_neurons_lstm}")
+            print(f"  - TCNN: channels = {num_channels_list_tcnn}, kernel_size = {kernel_size}")
 
     else:
         raise ValueError(f"Invalid type_model: '{type_model}'. Choose from 'ANN', 'CNN', 'LSTM', 'GRU', 'TCNN', 'TRANSFORMER'.")
@@ -260,9 +270,9 @@ def train_val_model(model: nn.Module, criterion: nn.Module, train_loader: DataLo
 
     # Optimizer selection
     if optimizer_type.upper() == 'ADAM':
-        optimizer = optim.Adam(model.parameters(), lr = lr, weight_decay = 1e-5)
+        optimizer = optim.Adam(model.parameters(), lr = lr, weight_decay = 1e-3)
     elif optimizer_type.upper() == 'SGD':
-        optimizer = optim.SGD(model.parameters(), lr = lr, momentum = 0.9, nesterov = True ,weight_decay = 1e-5)
+        optimizer = optim.SGD(model.parameters(), lr = lr, momentum = 0.3, weight_decay = 1e-3, nesterov = True)
     else:
         raise ValueError(f"Unsupported optimizer_type: {optimizer_type}. Choose 'Adam' or 'SGD'.")
     

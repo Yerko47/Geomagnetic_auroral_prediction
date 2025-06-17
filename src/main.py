@@ -40,6 +40,7 @@ def main():
     #* 1. LOAD AND PROCESS DATA
     # --------------------------
     df = dataset(cfg, project_paths, processOMNI)
+    
     df_storm = storm_selection(df, project_paths)
     df_scaler = scaler_df(df_storm, cfg)
 

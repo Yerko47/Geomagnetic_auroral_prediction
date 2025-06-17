@@ -39,6 +39,7 @@ def cdf_read(file_path: Union[str, Path]) -> pd.DataFrame:
     # Iterate over all zVariables (variables that depend on record variance)
     for key in info.zVariables:
         cdf_dict[key] = cdf[key][...]       #Extract data for each variable
+        
     
     cdf_df = pd.DataFrame(cdf_dict)
 
@@ -173,8 +174,8 @@ def dataset(config: Dict[str, Any], paths: Dict[str, Path], processOMNI: bool = 
             
         # Concatenate all monthly DataFrames
         df_omni = pd.concat(data_frame_list, axis = 0, ignore_index = True)
-
-
+        
+        
         # Drop specified irrelevant columns, handle missing columns gracefully
         existing_cols_to_drop = [col for col in columns_to_drop if col in df_omni.columns]
         df_omni.drop(columns = existing_cols_to_drop, inplace = True)
@@ -250,8 +251,8 @@ def storm_selection(df: pd.DataFrame, paths: Dict[str, Path]) -> pd.DataFrame:
     # Iterate over each storm event timestamp
     for storm_time in storm_list_df['Epoch']:
         #Define the start and end to the 48-hour window arround the storm
-        start_window = storm_time - pd.Timedelta(hours = 24)
-        end_window = storm_time + pd.Timedelta(hours = 24)
+        start_window = storm_time - pd.Timedelta(hours = 36)
+        end_window = storm_time + pd.Timedelta(hours = 36)
 
         #Extract the data for this window from the main DataFrame
         storm_segment = df_indexed.loc[start_window:end_window].copy()
@@ -420,7 +421,7 @@ def cross_validation(development_df: pd.DataFrame, config: Dict[str, Any]) -> It
 
     n_split = config['cv']['n_split']
     gap = config['cv']['gap']
-    max_train_size = config['cv']['max_train_size']
+    max_train_size = len(development_df)/2 if config['cv']['max_train_size'] == 0 else config['cv']['max_train_size']
 
     n_split_new = max(2, n_split) if len(development_df) > n_split else 1
 
@@ -472,9 +473,9 @@ def time_delay(df: pd.DataFrame, config: Dict[str, Any], delay: int, dataset_gro
     omni_param = config['constant']['omni_param']
     auroral_index = config['data']['auroral_index'].upper()
     type_model = config['nn']['type_model'].strip()
-
+    
     if not all(col in df.columns for col in omni_param):
-        raise ValueError("Missing one or more OMNI parameter columns in the time_delayinput DataFrame.")
+        raise ValueError("Missing one or more OMNI parameter columns in the time_delay input DataFrame.")
     if not auroral_index in df.columns:
         raise ValueError(f"Target auroral index '{auroral_index}' not found in time_delay input DataFrame.")
     if 'Epoch' not in df.columns and dataset_group == 'test':
@@ -484,6 +485,7 @@ def time_delay(df: pd.DataFrame, config: Dict[str, Any], delay: int, dataset_gro
     df_solar = df[omni_param].copy()
     df_index = df[auroral_index].copy()
     np_index = df_index.to_numpy()
+    
 
     # Store Epoch data if processing the test set
     if dataset_group == 'test':
@@ -519,7 +521,7 @@ def time_delay(df: pd.DataFrame, config: Dict[str, Any], delay: int, dataset_gro
             df_epoch = df_epoch.iloc[delay - 1:].reset_index(drop = True)
 
     # Models expecting [batch_size, num_features, sequence_length]
-    elif type_model in ['CNN', 'TCNN']:
+    elif type_model in ['CNN', 'TCNN', 'TCNN_LSTM']:
         sequences = []
         for i in range(len(df_solar) - delay + 1):
             sequence = df_solar.iloc[i : i + delay].values

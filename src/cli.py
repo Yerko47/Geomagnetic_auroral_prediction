@@ -33,9 +33,6 @@ def parse_args():
     parser.add_argument('--optimizer_type', type = str, help = "Optimizer Type [Adam, SGD]")
     parser.add_argument('--schler', type = str, help = "Scheduler Type [Reduce, Cosine, CosineRW]")
 
-    # CNN
-    parser.add_argument('--kernel_cnn', type = int, help = "Kernel CNN Layers [int]")
-
     # LSTM
     parser.add_argument('--num_layer_lstm', type = int, help = "Number Layers LSTM [int]")
     parser.add_argument('--hidden_neurons_lstm', type = int, help = "Number od Neurons in LSTM [int]")
@@ -44,8 +41,11 @@ def parse_args():
     parser.add_argument('--num_layer_gru', type = int, help = "Number Layers GRU [int]")
     parser.add_argument('--hidden_neurons_gru', type = int, help = "Number od Neurons in GRU [int]")
 
+    # CNN & TCNN
+    parser.add_argument('--kernel_size', type = int, help = "Kernel CNN/TCNN Layers [int]")
+
     # TCNN
-    parser.add_argument('--num_chanel_list_tcnn', type = list[int], help = "Number of Channels in TCNN [list]")
+    parser.add_argument('--num_channel_list_tcnn', type = int, nargs = '+', help = "Number of Channels in TCNN [space-separated values]")
     parser.add_argument('--kernel_size_tcnn', type = int, help = "Kernel Size in TCNN [int]")
 
     # Transformer

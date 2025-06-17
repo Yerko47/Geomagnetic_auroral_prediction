@@ -237,7 +237,7 @@ class TemporalBlock(nn.Module):
     """
     def __init__(self, n_inputs: int, n_outputs: int, kernel_size: int, stride: int, dilation: int, padding: int, drop: float = 0.2):
         super(TemporalBlock, self).__init__()
-        self.conv1 = nn.utils.weight_norm(
+        self.conv1 = nn.utils.parametrizations.weight_norm(
             nn.Conv1d(n_inputs, n_outputs, kernel_size, stride = stride, padding = padding, dilation = dilation))
         self.champ1 = Chomp1d(padding)
         self.relu1 = nn.ReLU()
@@ -340,7 +340,7 @@ class PositionalEncoding(nn.Module):
 
 class TransformerModel(nn.Module):
     """
-    
+    Transformer model for time series regression.
     """
     def __init__(self, input_features: int, d_model: int, nhead: int, num_encoder_layers: int, dim_feedforward: int, dropout: float, delay: int):
         super(TransformerModel, self).__init__()
@@ -404,3 +404,97 @@ class TransformerModel(nn.Module):
 
         out = self.output_fc(output_last_step)
         return out
+    
+
+#* TCNN + LSTM
+class TCNN_LSTM(nn.Module):
+    """
+    Hybrid model with cross-attention between TCNN and LSTM features.
+    Uses attention mechanism to combine features from both networks.
+    Modified to accept single input tensor.
+    """
+    def __init__(self, input_channels: int, input_size: int, tcnn_channels: List[int], 
+                 kernel_size: int, lstm_hidden: int, num_lstm_layers: int, 
+                 dropout_rate: float, attention_dim: int = 64, output_size: int = 1):
+        super(TCNN_LSTM, self).__init__()
+        
+        # TCNN branch
+        tcnn_layers = []
+        num_levels = len(tcnn_channels)
+        for i in range(num_levels):
+            dilation_size = 2 ** i
+            in_channels = input_channels if i == 0 else tcnn_channels[i - 1]
+            out_channels = tcnn_channels[i]
+            padding = (kernel_size - 1) * dilation_size
+            tcnn_layers.append(TemporalBlock(in_channels, out_channels, kernel_size, 
+                                           stride=1, dilation=dilation_size, 
+                                           padding=padding, drop=dropout_rate))
+        self.tcnn_branch = nn.Sequential(*tcnn_layers)
+        
+        # LSTM branch
+        self.lstm_branch = nn.LSTM(
+            input_size=input_size,
+            hidden_size=lstm_hidden,
+            num_layers=num_lstm_layers,
+            batch_first=True,
+            bidirectional=True,
+            dropout=dropout_rate if num_lstm_layers > 1 else 0
+        )
+        
+        # Attention mechanism
+        tcnn_feature_size = tcnn_channels[-1]
+        lstm_feature_size = lstm_hidden * 2
+        self.tcnn_projection = nn.Linear(tcnn_feature_size, attention_dim)
+        self.lstm_projection = nn.Linear(lstm_feature_size, attention_dim)
+        self.attention_weights = nn.Linear(attention_dim, 1)
+        
+        # Final classifier
+        self.classifier = nn.Sequential(
+            nn.Linear(attention_dim, 64),
+            nn.ReLU(),
+            nn.Dropout(dropout_rate),
+            nn.Linear(64, 16),
+            nn.ReLU(),
+            nn.Linear(16, output_size)
+        )
+    
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Forward pass with single input tensor.
+        
+        Args:
+            x: Input tensor with shape [batch_size, input_channels, sequence_length]
+               Will be transformed for LSTM as [batch_size, sequence_length, input_channels]
+        
+        Returns:
+            Output tensor with shape [batch_size, output_size]
+        """
+        # x shape: [batch_size, input_channels, sequence_length]
+
+        # TCNN branch - transpose x for TCNN format
+        tcnn_out = self.tcnn_branch(x)
+        tcnn_features = tcnn_out[:, :, -1]  # [batch_size, tcnn_channels[-1]]
+        
+        # LSTM branch - uses x as is (LSTM expects [batch_size, sequence_length, features])
+        x_lstm = x.transpose(1, 2)
+        lstm_out, _ = self.lstm_branch(x_lstm)
+        lstm_features = lstm_out[:, -1, :]   # [batch_size, lstm_hidden*2]
+        
+        # Project to attention space
+        tcnn_proj = self.tcnn_projection(tcnn_features)  # [batch_size, attention_dim]
+        lstm_proj = self.lstm_projection(lstm_features)  # [batch_size, attention_dim]
+        
+        # Stack features for attention
+        features = torch.stack([tcnn_proj, lstm_proj], dim=1)  # [batch_size, 2, attention_dim]
+        
+        # Compute attention weights
+        attention_scores = self.attention_weights(features)  # [batch_size, 2, 1]
+        attention_weights = torch.softmax(attention_scores, dim=1)  # [batch_size, 2, 1]
+        
+        # Weighted combination
+        attended_features = torch.sum(features * attention_weights, dim=1)  # [batch_size, attention_dim]
+        
+        # Final prediction
+        output = self.classifier(attended_features)
+
+        return output
