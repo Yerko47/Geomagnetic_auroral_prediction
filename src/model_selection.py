@@ -3,8 +3,12 @@ from typing import Tuple, Dict, Any, Union, List
 import torch
 import torch.nn as nn
 
-from models import ANN, CNN, LSTM, GRU, TCNN, TransformerModel, TCNN_LSTM
-
+from code_models.ANN import ANN
+from code_models.CNN import CNN
+from code_models.LSTM import LSTM
+from code_models.GRU import GRU
+from code_models.TCNN import TCNN
+from code_models.Transformer import TRANSFORMER
 
 #* SELECTION MODEL
 def type_nn(config: Dict[str, Any], x_train_shape: Tuple[int, ...], delay: int, device: Union[str, torch.device]) -> nn.Module:
