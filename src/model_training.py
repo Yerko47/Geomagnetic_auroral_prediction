@@ -13,6 +13,7 @@ from torch.utils.data import DataLoader
 
 from sklearn.metrics import root_mean_squared_error, r2_score
 
+<<<<<<< HEAD
 from code_models.ANN import ANN
 from code_models.CNN import CNN
 from code_models.LSTM import LSTM
@@ -141,6 +142,8 @@ def type_nn(config: Dict[str, Any], x_train_shape: Tuple[int, ...], delay: int, 
     return model.to(device)
 
 
+=======
+>>>>>>> f0b1deb608fd6014e34f793f88e5695fc3906bd4
 #* METRICS CALCULATION
 def calculate_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> Tuple[str, float]:
     """

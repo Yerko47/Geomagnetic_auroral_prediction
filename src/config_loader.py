@@ -33,7 +33,7 @@ def config_load(config_path: str = None, overrides: dict = None) -> dict:
             cfg['cv'][key] = value
 
         # Model and hyperparameters
-        elif key in ['type_model', 'lr', 'drop', 'patience', 'optimizer_type', 'schler', 'kernel_cnn', 'num_layer_lstm', 'hidden_neurons_lstm', 'num_layer_gru', 'hidden_neurons_gru', 'num_chanel_list_tcnn', 'kernel_size_tcnn', 'd_model_transformer', 'nhead_transformer', 'num_encoder_layers_transformer', 'dim_feedforward_transformer']:
+        elif key in ['type_model', 'lr', 'drop', 'patience', 'optimizer_type', 'schler', 'num_layer_lstm', 'hidden_neurons_lstm', 'num_layer_gru', 'hidden_neurons_gru', 'num_channel_list_tcnn', 'kernel_size', 'd_model_transformer', 'nhead_transformer', 'num_encoder_layers_transformer', 'dim_feedforward_transformer']:
             cfg["nn"][key] = value
         
         
