@@ -521,7 +521,7 @@ def time_delay(df: pd.DataFrame, config: Dict[str, Any], delay: int, dataset_gro
             df_epoch = df_epoch.iloc[delay - 1:].reset_index(drop = True)
 
     # Models expecting [batch_size, num_features, sequence_length]
-    elif type_model in ['CNN', 'TCNN', 'TCNN_LSTM']:
+    elif type_model in ['CNN', 'TCNN']:
         sequences = []
         for i in range(len(df_solar) - delay + 1):
             sequence = df_solar.iloc[i : i + delay].values

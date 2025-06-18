@@ -13,7 +13,13 @@ from torch.utils.data import DataLoader
 
 from sklearn.metrics import root_mean_squared_error, r2_score
 
-from models import ANN, CNN, LSTM, GRU, TCNN, TransformerModel, TCNN_LSTM
+from code_models.ANN import ANN
+from code_models.CNN import CNN
+from code_models.LSTM import LSTM
+from code_models.GRU import GRU
+from code_models.TCNN import TCNN
+from code_models.Transformer import TRANSFORMER
+
 
 #* SELECTION MODEL
 def type_nn(config: Dict[str, Any], x_train_shape: Tuple[int, ...], delay: int, device: Union[str, torch.device]) -> nn.Module:
@@ -122,19 +128,9 @@ def type_nn(config: Dict[str, Any], x_train_shape: Tuple[int, ...], delay: int, 
             input_size = x_train_shape[2]
             sequence_length = x_train_shape[1]
             if sequence_length == delay:
-                model = TransformerModel(input_size, d_model_transformer, nhead_transformer, num_encoder_layers_transformer, dim_feedforward_transformer, drop, delay)
+                model = TRANSFORMER(input_size, d_model_transformer, nhead_transformer, num_encoder_layers_transformer, dim_feedforward_transformer, drop, delay)
             print(f"Instantiated Transformer model with input_features = {input_size}, d_model = {d_model_transformer}, nhead = {nhead_transformer}, num_encoder_layers = {num_encoder_layers_transformer}, dim_feedforward = {dim_feedforward_transformer}, sequence_length = {delay}")
 
-    elif type_model == 'TCNN_LSTM':
-        if len(x_train_shape) >= 3:
-            input_size = x_train_shape[1]
-            sequence_length = x_train_shape[2]
-            print(sequence_length)
-            if sequence_length == delay:
-                model = TCNN_LSTM(input_channels=input_size, input_size=input_size, tcnn_channels=num_channels_list_tcnn, kernel_size=kernel_size, lstm_hidden=hidden_neurons_lstm, num_lstm_layers=num_lstm_layers, dropout_rate=drop)
-            print(f"Instantiated TCNN_LSTM model with:")
-            print(f"  - LSTM: input_size = {input_size}, layers = {num_lstm_layers}, hidden_neurons = {hidden_neurons_lstm}")
-            print(f"  - TCNN: channels = {num_channels_list_tcnn}, kernel_size = {kernel_size}")
 
     else:
         raise ValueError(f"Invalid type_model: '{type_model}'. Choose from 'ANN', 'CNN', 'LSTM', 'GRU', 'TCNN', 'TRANSFORMER'.")
@@ -314,6 +310,7 @@ def train_val_model(model: nn.Module, criterion: nn.Module, train_loader: DataLo
             yhat = model(x)
             loss = criterion(yhat, y)
             loss.backward()
+            nn.utils.clip_grad_norm_(model.parameters(), max_norm = 1)
             optimizer.step()
 
             train_loss += loss.item() * x.size(0)
