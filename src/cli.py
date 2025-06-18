@@ -46,7 +46,6 @@ def parse_args():
 
     # TCNN
     parser.add_argument('--num_channel_list_tcnn', type = int, nargs = '+', help = "Number of Channels in TCNN [space-separated values]")
-    parser.add_argument('--kernel_size_tcnn', type = int, help = "Kernel Size in TCNN [int]")
 
     # Transformer
     parser.add_argument('--d_model_transformer', type = int, help = "D Model in Transformer [int]")
