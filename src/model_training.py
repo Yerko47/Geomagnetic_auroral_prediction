@@ -66,7 +66,7 @@ def type_nn(config: Dict[str, Any], x_train_shape: Tuple[int, ...], delay: int, 
     num_gru_layers = model_config.get('num_layer_gru')
     hidden_neurons_gru = model_config.get('hidden_neurons_gru')
     
-    num_channels_list_tcnn = model_config.get('num_chanel_list_tcnn')
+    num_channels_list_tcnn = model_config.get('num_channel_list_tcnn')
 
     default_d_model = x_train_shape[2] if type_model == 'TRANSFORMER' and len(x_train_shape) == 3 else 64
     d_model_transformer = model_config.get('d_model_transformer', default_d_model)
