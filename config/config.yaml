@@ -30,8 +30,8 @@ data:
 
 cv:
   n_split: 5
-  gap: 1
-  max_train_size: 0
+  gap: 0
+  max_train_size: null
 
 
 nn:
