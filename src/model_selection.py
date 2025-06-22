@@ -62,6 +62,7 @@ def type_nn(config: Dict[str, Any], x_train_shape: Tuple[int, ...], delay: int, 
     hidden_neurons_gru = model_config.get('hidden_neurons_gru')
     
     num_channels_list_tcnn = model_config.get('num_channel_list_tcnn')
+    
 
     default_d_model = x_train_shape[2] if type_model == 'TRANSFORMER' and len(x_train_shape) == 3 else 64
     d_model_transformer = model_config.get('d_model_transformer', default_d_model)
@@ -119,7 +120,6 @@ def type_nn(config: Dict[str, Any], x_train_shape: Tuple[int, ...], delay: int, 
             if sequence_length == delay:
                 model = TRANSFORMER(input_size, d_model_transformer, nhead_transformer, num_encoder_layers_transformer, dim_feedforward_transformer, drop, delay)
             print(f"\nInstantiated Transformer model with input_features = {input_size}, d_model = {d_model_transformer}, nhead = {nhead_transformer}, num_encoder_layers = {num_encoder_layers_transformer}, dim_feedforward = {dim_feedforward_transformer}, sequence_length = {delay}")
-
 
 
     else:
