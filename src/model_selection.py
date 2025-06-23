@@ -8,7 +8,7 @@ from code_models.CNN import CNN
 from code_models.LSTM import LSTM
 from code_models.GRU import GRU
 from code_models.TCNN import TCNN
-from code_models.Transformer import TRANSFORMER
+from code_models.TransformerModel import TRANSFORMER
 
 #* SELECTION MODEL
 def type_nn(config: Dict[str, Any], x_train_shape: Tuple[int, ...], delay: int, device: Union[str, torch.device]) -> nn.Module:
@@ -48,93 +48,77 @@ def type_nn(config: Dict[str, Any], x_train_shape: Tuple[int, ...], delay: int, 
         model (nn.Module): 
             The instantiated PyTorch model, moved to the specified device.
     """
+
     model_config = config.get('nn', {})
-    model: Union[nn.Module, None] = None
     type_model = model_config.get('type_model').upper()
+
     drop = model_config.get('drop')
-    
-    kernel_size = model_config.get('kernel_size')
-    
+
+    # Extract LSTM parameters
     num_lstm_layers = model_config.get('num_layer_lstm')
     hidden_neurons_lstm = model_config.get('hidden_neurons_lstm')
-    
+
+    # Extract CNN & TCNN parameters
+    kernel_size = model_config.get('kernel_size')
+    num_channels_list_tcnn = model_config.get('num_channel_list_tcnn')
+
+    # Extract GRU parameters
     num_gru_layers = model_config.get('num_layer_gru')
     hidden_neurons_gru = model_config.get('hidden_neurons_gru')
     
-    num_channels_list_tcnn = model_config.get('num_channel_list_tcnn')
-
+    # Extract Transformer parameters
     default_d_model = x_train_shape[2] if type_model == 'TRANSFORMER' and len(x_train_shape) == 3 else 64
     d_model_transformer = model_config.get('d_model_transformer', default_d_model)
     nhead_transformer = model_config.get('nhead_transformer')
-
+    num_encoder_layers_transformer = model_config.get('num_encoder_layers_transformer')
+    dim_feedforward_transformer = model_config.get('dim_feedforward_transformer')
     if d_model_transformer % nhead_transformer != 0:
         raise ValueError(f"d_model_transformer ({d_model_transformer}) must be divisible by nhead_transformer ({nhead_transformer})")
     
-    num_encoder_layers_transformer = model_config.get('num_encoder_layers_transformer')
-    dim_feedforward_transformer = model_config.get('dim_feedforward_transformer')
-
-    if type_model == 'ANN':
-        if len(x_train_shape) >= 2:
-            input_size = x_train_shape[1]
-            model = ANN(input_size, drop)
-            print(f"\nInstantiated ANN model with input_size = {input_size}")
-
-    elif type_model == 'CNN':
-        if len(x_train_shape) >= 3:
-            input_size = x_train_shape[1]
-            sequence_length = x_train_shape[2]
-            if sequence_length == delay:
-                print(type_model)
-                model = CNN(input_size, kernel_size, drop, delay)
-            print(f"\nInstantiated CNN model with input_channels = {input_size}, kernel_size = {kernel_size}, sequence_length = {delay}\n")
     
-    elif type_model == 'LSTM':
-        if len(x_train_shape) >= 3:
-            input_size = x_train_shape[2]
-            sequence_length = x_train_shape[1]
-            if sequence_length == delay:
+    match type_model:
+
+        case 'ANN':
+            if len(x_train_shape) == 2:
+                input_size = x_train_shape[1]
+                model = ANN(input_size, drop)
+                print(f"\nInstantiated ANN model with input_size = {input_size}")
+    
+        case 'LSTM':
+            if len(x_train_shape) == 3:
+                input_size = x_train_shape[2]
                 model = LSTM(input_size, drop, num_lstm_layers, delay, hidden_neurons_lstm)
-            print(f"\nInstantiated LSTM model with input_features = {input_size}, layers = {num_lstm_layers}, hidden_neurons = {hidden_neurons_lstm}, sequence_length = {delay}")
+                print(f"\nInstantiated LSTM model with input_features = {input_size}, layers = {num_lstm_layers}, hidden_neurons = {hidden_neurons_lstm}, sequence_length = {delay}")
 
-    elif type_model == 'GRU':
-        if len(x_train_shape) >= 3:
-            input_size = x_train_shape[2]
-            sequence_length = x_train_shape[1]
-            if sequence_length == delay:
+        case 'GRU':
+            if len(x_train_shape) == 3:
+                input_size = x_train_shape[2]
                 model = GRU(input_size, drop, num_gru_layers, delay, hidden_neurons_gru)
-            print(f"\nInstantiated GRU model with input_features = {input_size}, layers = {num_gru_layers}, hidden_neurons = {hidden_neurons_gru}, sequence_length = {delay}")
-    
-    elif type_model == 'TCNN':
-        if len(x_train_shape) >= 3:
-            input_size = x_train_shape[1]
-            sequence_length = x_train_shape[2]
-            if sequence_length == delay:
+                print(f"\nInstantiated GRU model with input_features = {input_size}, layers = {num_gru_layers}, hidden_neurons = {hidden_neurons_gru}, sequence_length = {delay}")
+
+        case 'TRANSFORMER':
+            if len(x_train_shape) == 3:
+                input_size = x_train_shape[2]
+                model = TRANSFORMER(input_size, d_model_transformer, nhead_transformer, num_encoder_layers_transformer, dim_feedforward_transformer, drop, delay)
+                print(f"\nInstantiated Transformer model with input_features = {input_size}, d_model = {d_model_transformer}, nhead = {nhead_transformer}, num_encoder_layers = {num_encoder_layers_transformer}, dim_feedforward = {dim_feedforward_transformer}, sequence_length = {delay}")
+
+        case 'CNN':
+            if len(x_train_shape) == 3:
+                input_size = x_train_shape[1]
+                model = CNN(input_size, kernel_size, drop, delay)
+                print(f"\nInstantiated CNN model with input_channels = {input_size}, kernel_size = {kernel_size}, sequence_length = {delay}\n")
+
+
+        case 'TCNN':
+            if len(x_train_shape) == 3:
+                input_size = x_train_shape[1]
                 model = TCNN(input_size, num_channels_list_tcnn, kernel_size, drop, delay)
-            print(f"\nInstantiated TCNN model with input_channels = {input_size}, kernel_size = {kernel_size}, sequence_length = {delay}")
+                print(f"\nInstantiated TCNN model with input_channels = {input_size}, kernel_size = {kernel_size}, sequence_length = {delay}")
 
-    elif type_model == 'TRANSFORMER':
-        if len(x_train_shape) >= 3:
-            input_size = x_train_shape[2]
-            sequence_length = x_train_shape[1]
-            if sequence_length == delay:
-                model = TransformerModel(input_size, d_model_transformer, nhead_transformer, num_encoder_layers_transformer, dim_feedforward_transformer, drop, delay)
-            print(f"\nInstantiated Transformer model with input_features = {input_size}, d_model = {d_model_transformer}, nhead = {nhead_transformer}, num_encoder_layers = {num_encoder_layers_transformer}, dim_feedforward = {dim_feedforward_transformer}, sequence_length = {delay}")
-
-    elif type_model == 'TCNN_LSTM':
-        if len(x_train_shape) >= 3:
-            input_size = x_train_shape[1]
-            sequence_length = x_train_shape[2]
-            print(sequence_length)
-            if sequence_length == delay:
-                model = TCNN_LSTM(input_channels=input_size, input_size=input_size, tcnn_channels=num_channels_list_tcnn, kernel_size=kernel_size, lstm_hidden=hidden_neurons_lstm, num_lstm_layers=num_lstm_layers, dropout_rate=drop)
-            print(f"\nInstantiated TCNN_LSTM model with:")
-            print(f"  - LSTM: input_size = {input_size}, layers = {num_lstm_layers}, hidden_neurons = {hidden_neurons_lstm}")
-            print(f"  - TCNN: channels = {num_channels_list_tcnn}, kernel_size = {kernel_size}")
-
-    else:
-        raise ValueError(f"Invalid type_model: '{type_model}'. Choose from 'ANN', 'CNN', 'LSTM', 'GRU', 'TCNN', 'TRANSFORMER'.")
-
+        case _:
+            raise ValueError(f"Invalid type_model: '{type_model}'. Choose from 'ANN', 'CNN', 'LSTM', 'GRU', 'TCNN', 'TRANSFORMER'.")
+    
     if model is None:
-        raise ValueError(f'Model None')
+        raise ValueError(f'Model instantiation failed for type: {type_model}')
     
     return model.to(device)

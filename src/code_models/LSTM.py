@@ -28,10 +28,6 @@ class LSTM(nn.Module):
             input_size = input_size, hidden_size = hidden_neurons,
             num_layers = num_lstm_layers, batch_first = True, bidirectional = True
         )
-        self.lstm_2 = nn.LSTM(
-            input_size = hidden_neurons * 2, hidden_size = hidden_neurons, 
-            num_layers = num_lstm_layers, batch_first = True, bidirectional = True
-        )
 
         self.layer_norm = nn.LayerNorm(hidden_neurons * 2)
 
@@ -45,8 +41,7 @@ class LSTM(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # x shape: [batch_size, sequence_length, input_features]
         lstm_out_1, _ = self.lstm_1(x)
-        lstm_out_2, _ = self.lstm_2(lstm_out_1)
-        out_last = lstm_out_2[:, -1, :]
+        out_last = lstm_out_1[:, -1, :]
         out_norm = self.layer_norm(out_last)
         out = self.fc1(out_norm)
         return out
