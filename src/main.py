@@ -98,7 +98,6 @@ def main():
 
             # Instantiate and train the model for this fold (new model each time)
             model_fold = type_nn(cfg, x_train_shape = train_solar_fold.shape, delay = delay, device = device)
-            
             criterion_fold = nn.MSELoss()
 
             trained_model_fold, metrics_history_df, best_val_loss_fold, path_save_fold  = train_val_model(
@@ -120,7 +119,6 @@ def main():
                     'best_model_state_dict': deepcopy(trained_model_fold.state_dict())
                 })           
         
-
         #* 5. Testing the Best Model for the Current Delay
         # ------------------------------------------------
         test_solar, test_index, test_epoch = time_delay(test_df.copy(), cfg, delay, 'test')

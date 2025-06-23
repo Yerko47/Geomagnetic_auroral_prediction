@@ -25,7 +25,7 @@ class ANN(nn.Module):
             nn.Linear(256, 128), nn.ReLU(), nn.BatchNorm1d(128), nn.Dropout(drop),
             nn.Linear(128, 64), nn.ReLU(), nn.BatchNorm1d(64),
             nn.Linear(64, 32), nn.ReLU(), nn.BatchNorm1d(32),
-            nn.Linear(32, 16), nn.ReLU(), nn.BatchNorm1d(32),
+            nn.Linear(32, 16), nn.ReLU(),
             nn.Linear(16, 8), nn.ReLU(),
             nn.Linear(8, 1)
         )

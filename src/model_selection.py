@@ -118,7 +118,5 @@ def type_nn(config: Dict[str, Any], x_train_shape: Tuple[int, ...], delay: int, 
         case _:
             raise ValueError(f"Invalid type_model: '{type_model}'. Choose from 'ANN', 'CNN', 'LSTM', 'GRU', 'TCNN', 'TRANSFORMER'.")
     
-    if model is None:
-        raise ValueError(f'Model instantiation failed for type: {type_model}')
     
     return model.to(device)
