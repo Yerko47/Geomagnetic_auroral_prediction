@@ -3,9 +3,11 @@ constant:
   out_year: 2018
   delay_length: [30, 40, 50, 60]
   EPOCH: 300
+
   omni_param: [
     "B_Total",
     "BZ_GSE",
+    'BZ_GSM',
     "flow_speed",
     "Vx",
     "T",
@@ -36,17 +38,17 @@ cv:
 
 nn:
   #* Hyperparameters
-  type_model: "TCNN"
+  type_model: "LSTM"
   batch_test: 1040
-  lr: 0.00005
-  patience: 100
-  drop: 0.25
-  optimizer_type: "Adam"
-  schler: "CosineRW"
+  lr: 0.000005
+  patience: 20
+  drop: 0.2
+  optimizer_type: "AdamW"
+  schler: "Cycle"
   patience_schler: 20
 
   #* LSTM
-  num_layer_lstm: 7
+  num_layer_lstm: 8
   hidden_neurons_lstm: 128
 
   #*GRU
@@ -54,10 +56,10 @@ nn:
   hidden_neurons_gru: 128
 
   #* CNN & TCNN
-  kernel_size: 5
+  kernel_size: 7
 
   #*TCNN
-  num_channel_list_tcnn: [128, 128, 256, 64]
+  num_channel_list_tcnn: [128, 256, 512]
 
 
   #* TRANSFORMER

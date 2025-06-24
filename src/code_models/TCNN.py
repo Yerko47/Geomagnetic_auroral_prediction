@@ -165,4 +165,3 @@ class TCNN(nn.Module):
         
         out = self.fc(final_features)
         return out
-

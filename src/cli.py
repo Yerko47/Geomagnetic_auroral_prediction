@@ -30,8 +30,8 @@ def parse_args():
     parser.add_argument('--lr', type = float, help = "Learning Rate [float]")
     parser.add_argument('--drop', type = float, help = "Dropout Model [float]")
     parser.add_argument('--patience', type = float, help = "Patience of the Error in the model [float]")
-    parser.add_argument('--optimizer_type', type = str, help = "Optimizer Type [Adam, SGD]")
-    parser.add_argument('--schler', type = str, help = "Scheduler Type [Reduce, Cosine, CosineRW]")
+    parser.add_argument('--optimizer_type', type = str, help = "Optimizer Type [Adam, AdamW]")
+    parser.add_argument('--schler', type = str, help = "Scheduler Type [Reduce, Cycle, Cosine, CosineRW]")
 
     # LSTM
     parser.add_argument('--num_layer_lstm', type = int, help = "Number Layers LSTM [int]")

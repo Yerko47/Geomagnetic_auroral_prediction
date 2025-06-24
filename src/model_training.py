@@ -138,22 +138,25 @@ def train_val_model(model: nn.Module, criterion: nn.Module, train_loader: DataLo
 
     # Optimizer selection
     if optimizer_type.upper() == 'ADAM':
-        optimizer = optim.Adam(model.parameters(), lr = lr, weight_decay = 1e-3)
-    elif optimizer_type.upper() == 'SGD':
-        optimizer = optim.SGD(model.parameters(), lr = lr, momentum = 0.3, weight_decay = 1e-3, nesterov = True)
+        optimizer = optim.Adam(model.parameters(), lr = lr, weight_decay = 1e-4)
+    elif optimizer_type.upper() == 'ADAMW':
+        optimizer = optim.AdamW(model.parameters(), lr = lr, weight_decay=1e-4)
     else:
-        raise ValueError(f"Unsupported optimizer_type: {optimizer_type}. Choose 'Adam' or 'SGD'.")
+        raise ValueError(f"Unsupported optimizer_type: {optimizer_type}. Choose 'Adam' or 'AdamW' ")
     
-    #Scheduler selectionm
-    schler = schler.strip().lower()
-    if schler == 'reduce':
-        scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode = 'min', factor = 0.3, patience = schler_patience)
-    elif schler == 'cosine':
-        scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max = EPOCH, eta_min = 0)
-    elif schler == 'cosinerw':
-        scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0 = EPOCH, T_mult = 1)
-    else:
-        print(f"Warning: Unsupported scheduler name '{schler.upper()}'. No scheduler will be used.")
+    #Scheduler selection
+    match schler.strip().lower():
+        case 'reduce': 
+            scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode = 'min', factor = 0.3, patience = schler_patience)
+        case 'cycle':
+            scheduler = optim.lr_scheduler.OneCycleLR(optimizer, max_lr = 1e-3, steps_per_epoch = len(train_loader), epochs = 50)
+        case 'cosine':
+            scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max = EPOCH, eta_min = 0)
+        case 'cosinerw':
+            scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0 = EPOCH, T_mult = 1)
+        case _:
+            print(f"Warning: Unsupported scheduler name '{schler.upper()}'. No scheduler will be used.")
+
 
     # Early stopping
     early_stopper = None
@@ -233,9 +236,11 @@ def train_val_model(model: nn.Module, criterion: nn.Module, train_loader: DataLo
             if avg_val_loss < best_val_loss:
                 best_val_loss = avg_val_loss
                 best_model_weights = deepcopy(model.state_dict())
-                if (epoch + 1) % 2 == 0 or epoch == epoch - 1:
+                if (epoch + 1) % 2 == 0 or epoch == EPOCH - 1:
                     print(f"Epoch {epoch+1}: Val loss improved to {avg_val_loss:.4f}. Model snapshot updated.")
-            if early_stopper(avg_val_loss): continue
+            if early_stopper(avg_val_loss): 
+                print(f"Early stopping triggered at epoch {epoch+1}")
+                break
         elif not val_loader: 
             best_model_weights = deepcopy(model.state_dict())
 

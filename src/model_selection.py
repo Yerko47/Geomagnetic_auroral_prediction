@@ -87,7 +87,7 @@ def type_nn(config: Dict[str, Any], x_train_shape: Tuple[int, ...], delay: int, 
         case 'LSTM':
             if len(x_train_shape) == 3:
                 input_size = x_train_shape[2]
-                model = LSTM(input_size, drop, num_lstm_layers, delay, hidden_neurons_lstm)
+                model = LSTM(input_size, hidden_neurons_lstm, num_lstm_layers, drop, use_attention = False, num_ensemble_heads = 5)
                 print(f"\nInstantiated LSTM model with input_features = {input_size}, layers = {num_lstm_layers}, hidden_neurons = {hidden_neurons_lstm}, sequence_length = {delay}")
 
         case 'GRU':
@@ -118,5 +118,7 @@ def type_nn(config: Dict[str, Any], x_train_shape: Tuple[int, ...], delay: int, 
         case _:
             raise ValueError(f"Invalid type_model: '{type_model}'. Choose from 'ANN', 'CNN', 'LSTM', 'GRU', 'TCNN', 'TRANSFORMER'.")
     
+    if model is None:
+        raise ValueError(f'Model instantiation failed for type: {type_model}')
     
     return model.to(device)
