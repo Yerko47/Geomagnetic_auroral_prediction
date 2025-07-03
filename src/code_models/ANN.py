@@ -16,20 +16,26 @@ class ANN(nn.Module):
         Dropout probability for regularization.
     
     """
-    def __init__(self, input_size: int, drop: float):
+    def __init__(self, input_size: int, hidden_layer_ann: int, drop: float):
         super(ANN, self).__init__()
-        self.fc_layers = nn.Sequential(
-            nn.Linear(input_size, 768), nn.ReLU(), nn.BatchNorm1d(768), nn.Dropout(drop),
-            nn.Linear(768, 512), nn.ReLU(), nn.BatchNorm1d(512), nn.Dropout(drop),
-            nn.Linear(512, 256), nn.ReLU(), nn.BatchNorm1d(256), nn.Dropout(drop),
-            nn.Linear(256, 128), nn.ReLU(), nn.BatchNorm1d(128), nn.Dropout(drop),
-            nn.Linear(128, 64), nn.ReLU(), nn.BatchNorm1d(64),
-            nn.Linear(64, 32), nn.ReLU(), nn.BatchNorm1d(32),
-            nn.Linear(32, 16), nn.ReLU(),
-            nn.Linear(16, 8), nn.ReLU(),
-            nn.Linear(8, 1)
-        )
+
+        layers = []
+        hidden_layer_ann = int(hidden_layer_ann)
+        while hidden_layer_ann > 10:
+            layers.append(nn.Linear(input_size, hidden_layer_ann))
+            layers.append(nn.ReLU())
+            layers.append(nn.BatchNorm1d(hidden_layer_ann))
+            layers.append(nn.Dropout(drop))
+            input_size = hidden_layer_ann
+            hidden_layer_ann = hidden_layer_ann // 2
+
+            if hidden_layer_ann <= 256:
+                drop = drop * 0.9
+
+        self.temporal_network = nn.Sequential(*layers)
+        self.fc = nn.Linear(input_size, 1)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        out = self.fc_layers(x)
+        out = self.temporal_network(x)
+        out = self.fc(out)
         return(out)

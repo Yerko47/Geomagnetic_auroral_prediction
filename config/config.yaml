@@ -38,14 +38,17 @@ cv:
 
 nn:
   #* Hyperparameters
-  type_model: "LSTM"
+  type_model: "ANN"
   batch_test: 1040
-  lr: 0.000005
+  lr: 0.00001
   patience: 20
   drop: 0.2
-  optimizer_type: "AdamW"
-  schler: "Cycle"
+  optimizer_type: "Adam"
+  schler: "Cosine"
   patience_schler: 20
+
+  #* ANN
+  hidden_layer_ann: 1024
 
   #* LSTM
   num_layer_lstm: 8

@@ -54,6 +54,9 @@ def type_nn(config: Dict[str, Any], x_train_shape: Tuple[int, ...], delay: int, 
 
     drop = model_config.get('drop')
 
+    # Extract ANN parameters
+    hidden_neurons_ann = model_config.get('hidden_layer_ann')
+
     # Extract LSTM parameters
     num_lstm_layers = model_config.get('num_layer_lstm')
     hidden_neurons_lstm = model_config.get('hidden_neurons_lstm')
@@ -81,8 +84,8 @@ def type_nn(config: Dict[str, Any], x_train_shape: Tuple[int, ...], delay: int, 
         case 'ANN':
             if len(x_train_shape) == 2:
                 input_size = x_train_shape[1]
-                model = ANN(input_size, drop)
-                print(f"\nInstantiated ANN model with input_size = {input_size}")
+                model = ANN(input_size, hidden_neurons_ann, drop)
+                print(f"\nInstantiated ANN model with input_size = {input_size}, hidden_neurons = {hidden_neurons_ann}")
     
         case 'LSTM':
             if len(x_train_shape) == 3:

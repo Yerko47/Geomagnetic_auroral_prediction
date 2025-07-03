@@ -33,6 +33,9 @@ def parse_args():
     parser.add_argument('--optimizer_type', type = str, help = "Optimizer Type [Adam, AdamW]")
     parser.add_argument('--schler', type = str, help = "Scheduler Type [Reduce, Cycle, Cosine, CosineRW]")
 
+    # ANN
+    parser.add_argument('--hidden_neurons_ann', type = int, help = "Nymber Layers ANN [int]")
+
     # LSTM
     parser.add_argument('--num_layer_lstm', type = int, help = "Number Layers LSTM [int]")
     parser.add_argument('--hidden_neurons_lstm', type = int, help = "Number od Neurons in LSTM [int]")
