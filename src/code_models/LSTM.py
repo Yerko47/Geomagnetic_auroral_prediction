@@ -45,7 +45,7 @@ class ResidualBlock(nn.Module):
     """
     def __init__(self, input_size: int, hidden_size: int, drop: float = 0.1):
         super(ResidualBlock, self).__init__()
-        self.lstm = nn.LSTM(input_size, hidden_size, batch_first=True, bidirectional=True)
+        self.lstm = nn.LSTM(input_size, hidden_size, batch_first = True, bidirectional = False)
         self.layer_norm = nn.LayerNorm(hidden_size * 2)
         self.drop = nn.Dropout(drop)
 
@@ -80,7 +80,7 @@ class LSTM(nn.Module):
         self.input_projection = nn.Sequential(
             nn.Linear(input_size, hidden_neurons),
             nn.BatchNorm1d(hidden_neurons),
-            nn.SiLU(),
+            nn.ReLU(),
             nn.Dropout(drop * 0.5)
         )
 
@@ -88,11 +88,11 @@ class LSTM(nn.Module):
         for i in range(num_lstm_layers):
             block_input_size = hidden_neurons if i == 0 else hidden_neurons * 2
             self.lstm_blocks.append(
-                ResidualBlock(input_size=block_input_size, hidden_size=hidden_neurons, drop=drop)
+                ResidualBlock(input_size = block_input_size, hidden_size = hidden_neurons, drop = drop)
             )
         
         if self.use_attention:
-            self.attention = MultiHeadAttention(hidden_size=hidden_neurons * 2, num_heads=8)
+            self.attention = MultiHeadAttention(hidden_size = hidden_neurons * 2, num_heads = 8)
             self.attention_norm = nn.LayerNorm(hidden_neurons * 2)
         
         # --- CAMBIO PRINCIPAL: Cabezas de predicción simplificadas ---
